@@ -9,14 +9,13 @@ import ItineraryPlanner from './components/ItineraryPlanner';
 import MyTrips from './components/MyTrips';
 import ResultsList from './components/ResultsList';
 import { Icon } from './components/Icon';
-import { SearchResult, SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, GamificationProfile, TravelStory as TravelStoryType, Restaurant, RideOption, FoodOrderConfirmation, RideBookingConfirmation, TripMemory, LocalProfile, HangoutSuggestion, CoworkingSpace, CoworkingBookingConfirmation, Community } from './types';
+import { SearchResult, SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, GamificationProfile, TravelStory as TravelStoryType, Restaurant, RideOption, FoodOrderConfirmation, RideBookingConfirmation, TripMemory, LocalProfile, HangoutSuggestion, CoworkingSpace, CoworkingBookingConfirmation, Community, ItineraryPlan, SocialReel } from './types';
 import SubscriptionModal from './components/SubscriptionModal';
 import CurrencyConverter from './components/CurrencyConverter';
 import OnboardingModal from './components/OnboardingModal';
 import UserProfile from './components/UserProfile';
 import TravelBuddy from './components/TravelBuddy';
-// FIX: Corrected import path for MemoriesHub component.
-import MemoriesHub from './components/TravelStories';
+import MemoriesHub from './components/MemoriesHub';
 import TravelCommunities from './components/TravelCommunities';
 import MeetupEvents from './components/MeetupEvents';
 import FlightBooking from './components/FlightBooking';
@@ -29,10 +28,8 @@ import LoginModal from './components/LoginModal';
 import SignUpModal from './components/SignUpModal';
 import Wallet from './components/Wallet';
 import CreateStoryModal from './components/CreateStoryModal';
-import DreamWeaver from './components/DreamWeaver';
-// FIX: Corrected import path for LocalConnectionsHub component.
-import LocalConnectionsHub from './components/HomeShare';
-import TravelTrendRadar from './components/TravelTrendRadar';
+import SocialFeed from './components/SocialFeed';
+import HomeShare from './components/HomeShare';
 import SuperServicesHub from './components/SuperServicesHub';
 import FoodOrderModal from './components/FoodOrderModal';
 import RideBookingModal from './components/RideBookingModal';
@@ -41,7 +38,10 @@ import CoworkingHub from './components/CoworkingHub';
 import CoworkingBooking from './components/CoworkingBooking';
 import HomeDashboard from './components/HomeDashboard';
 import * as dbService from './services/dbService';
+import * as xanoService from './services/xanoService';
 import FlightTracker from './components/FlightTracker';
+import SocialReelGeneratorModal from './components/SocialReelGeneratorModal';
+import { ALL_BADGES } from './data/gamification';
 
 export enum Tab {
   Home = 'Home',
@@ -62,7 +62,6 @@ export enum Tab {
   Passport = 'Passport',
   Inspire = 'Inspire',
   LocalConnections = 'Local Connections',
-  TrendRadar = 'Trend Radar',
   SuperServices = 'Super Services',
   Coworking = 'Coworking',
 }
@@ -103,6 +102,9 @@ const initialStories: TravelStoryType[] = [
     locationTags: ['Kyoto', 'Japan', 'Culture'],
     likes: 125,
     createdAt: '2024-05-10T14:48:00.000Z',
+    aiSummary: "An unforgettable week-long cultural immersion in Kyoto, Japan 🏯🍣",
+    estimatedCost: 1500,
+    tags: ['cultural-immersion', 'solo-travel', 'foodie'],
     comments: [
       {
         id: 'c1',
@@ -171,7 +173,6 @@ const PRIMARY_TABS = [
     { name: Tab.Home, icon: 'home' },
     { name: Tab.FlightTracker, icon: 'send' },
     { name: Tab.Inspire, icon: 'lightbulb' },
-    { name: Tab.TrendRadar, icon: 'chart-bar' },
     { name: Tab.Chat, icon: 'chat' },
     { name: Tab.Planner, icon: 'planner' },
     { name: Tab.SuperServices, icon: 'apps' },
@@ -218,17 +219,11 @@ export default function App() {
   const [generatedMemories, setGeneratedMemories] = useState<TripMemory[]>([]);
   const [hangoutRequest, setHangoutRequest] = useState<{local: LocalProfile, suggestion: HangoutSuggestion} | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isReelGeneratorOpen, setIsReelGeneratorOpen] = useState(false);
+  const [tripForReel, setTripForReel] = useState<(SavedTrip & { data: ItineraryPlan }) | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfileType>(DEFAULT_USER_PROFILE);
+  
   const moreMenuRef = useRef<HTMLDivElement>(null);
-
-  const [userProfile, setUserProfile] = useState<UserProfileType>(() => {
-    try {
-      const savedProfile = localStorage.getItem('flyWiseUserProfile');
-      return savedProfile ? { ...DEFAULT_USER_PROFILE, ...JSON.parse(savedProfile) } : DEFAULT_USER_PROFILE;
-    } catch (e) {
-      console.error("Could not parse user profile from localStorage", e);
-      return DEFAULT_USER_PROFILE;
-    }
-  });
 
   useEffect(() => {
     const hasVisited = localStorage.getItem('hasVisitedFlyWiseAI');
@@ -236,28 +231,48 @@ export default function App() {
       setIsOnboardingOpen(true);
     }
     
-    // Load trips from IndexedDB on initial mount
-    const loadTrips = async () => {
+    const initializeApp = async () => {
+      if (xanoService.getToken()) {
+        setIsLoggedIn(true);
         try {
-            const trips = await dbService.getAllTrips();
-            setSavedTrips(trips);
-        } catch (e) {
-            console.error("Could not load trips from DB", e);
-            setError("Could not load saved trips. Some data may be unavailable offline.");
+          const [profile, trips] = await Promise.all([
+            xanoService.getProfile(),
+            xanoService.getTrips()
+          ]);
+          const fullProfile = { ...DEFAULT_USER_PROFILE, ...profile };
+          setUserProfile(fullProfile);
+          setSavedTrips(trips);
+          // Cache data for offline access
+          localStorage.setItem('flyWiseUserProfile', JSON.stringify(fullProfile));
+          const localTrips = await dbService.getAllTrips();
+          await Promise.all(localTrips.map(t => dbService.deleteTrip(t.id)));
+          await Promise.all(trips.map(t => dbService.saveTrip(t)));
+        } catch (error) {
+          console.error("Failed to fetch data from server, loading from cache:", error);
+          setError("Could not connect to server. Displaying cached data.");
+          const trips = await dbService.getAllTrips();
+          setSavedTrips(trips);
+          const cachedProfile = localStorage.getItem('flyWiseUserProfile');
+          if (cachedProfile) {
+            setUserProfile(JSON.parse(cachedProfile));
+          }
         }
+      } else {
+        // Not logged in, load from local DB if any trips exist
+         const trips = await dbService.getAllTrips();
+         setSavedTrips(trips);
+      }
     };
-    loadTrips();
+    initializeApp();
 
-    // Listen for online/offline status changes
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     return () => {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
   
@@ -293,35 +308,63 @@ export default function App() {
   }, []);
 
   const handleSaveTrip = useCallback(async (tripData: Omit<SavedTrip, 'id' | 'createdAt'>) => {
-    const newTrip: SavedTrip = {
-      ...tripData,
-      id: `${Date.now()}-${Math.random()}`,
-      createdAt: new Date().toISOString(),
-    };
-    try {
+    if (!isLoggedIn || isOffline) {
+        setError("You must be online and logged in to save trips.");
+        // Fallback to local save for offline/logged out users
+        console.log("Saving trip locally as fallback.");
+        const newTrip: SavedTrip = { ...tripData, id: `${Date.now()}`, createdAt: new Date().toISOString() };
         await dbService.saveTrip(newTrip);
         setSavedTrips(prev => [newTrip, ...prev]);
         setActiveTab(Tab.MyTrips);
-    } catch (e) {
-        console.error("Failed to save trip to DB", e);
-        setError("Could not save your trip. The database might be unavailable.");
+        return;
     }
-}, []);
+    try {
+        const newTrip = await xanoService.addTrip(tripData);
+        setSavedTrips(prev => [newTrip, ...prev]);
+        await dbService.saveTrip(newTrip); // Cache it
+        setActiveTab(Tab.MyTrips);
+    } catch (e) {
+        console.error("Failed to save trip to server", e);
+        setError("Could not save your trip. The server might be unavailable.");
+    }
+}, [isLoggedIn, isOffline]);
+
 
   const handleDeleteTrip = useCallback(async (tripId: string) => {
-    try {
+    if (!isLoggedIn || isOffline) {
+        setError("You must be online and logged in to delete trips.");
+        // Fallback to local delete
         await dbService.deleteTrip(tripId);
         setSavedTrips(prev => prev.filter(trip => trip.id !== tripId));
-    } catch (e) {
-        console.error("Failed to delete trip from DB", e);
-        setError("Could not delete your trip. The database might be unavailable.");
+        return;
     }
-  }, []);
+    try {
+        await xanoService.deleteTrip(tripId);
+        setSavedTrips(prev => prev.filter(trip => trip.id !== tripId));
+        await dbService.deleteTrip(tripId); // remove from cache
+    } catch (e) {
+        console.error("Failed to delete trip from server", e);
+        setError("Could not delete your trip. The server might be unavailable.");
+    }
+  }, [isLoggedIn, isOffline]);
   
   const handleSaveProfile = useCallback((profile: UserProfileType) => {
-    setUserProfile(profile);
-    localStorage.setItem('flyWiseUserProfile', JSON.stringify(profile));
-  }, []);
+    if (isOffline) {
+        alert("Cannot save profile while offline. Please reconnect.");
+        return;
+    }
+    xanoService.updateProfile(profile)
+      .then(updatedProfile => {
+        const fullProfile = { ...DEFAULT_USER_PROFILE, ...updatedProfile };
+        setUserProfile(fullProfile);
+        localStorage.setItem('flyWiseUserProfile', JSON.stringify(fullProfile));
+        alert("Profile saved successfully!");
+      })
+      .catch(err => {
+        console.error("Failed to save profile:", err);
+        alert("Could not save your profile. The server might be unavailable.");
+      });
+  }, [isOffline]);
 
   const onOpenVipModal = useCallback(() => setIsVipModalOpen(true), []);
 
@@ -336,12 +379,11 @@ export default function App() {
   const handleOrderComplete = useCallback((confirmation: FoodOrderConfirmation | RideBookingConfirmation) => {
       let earnedBadge: { id: string, name: string } | null = null;
       
-      // Using a type guard to differentiate confirmations and check if badge is earned
-      if ('orderId' in confirmation) { // FoodOrderConfirmation
+      if ('orderId' in confirmation) {
           if (!gamificationProfile.earnedBadgeIds.includes('foodie-explorer')) {
               earnedBadge = { id: 'foodie-explorer', name: 'Foodie Explorer' };
           }
-      } else if ('bookingId' in confirmation) { // RideBookingConfirmation
+      } else if ('bookingId' in confirmation) {
           if (!gamificationProfile.earnedBadgeIds.includes('local-rider')) {
               earnedBadge = { id: 'local-rider', name: 'Local Rider' };
           }
@@ -398,19 +440,41 @@ export default function App() {
     setSpaceToBook(null);
   }, [gamificationProfile.earnedBadgeIds]);
 
+  const fetchDataAfterAuth = useCallback(async () => {
+    try {
+        const [profile, trips] = await Promise.all([
+            xanoService.getProfile(),
+            xanoService.getTrips()
+        ]);
+        const fullProfile = { ...DEFAULT_USER_PROFILE, ...profile };
+        setUserProfile(fullProfile);
+        setSavedTrips(trips);
+        localStorage.setItem('flyWiseUserProfile', JSON.stringify(fullProfile));
+        trips.forEach(trip => dbService.saveTrip(trip));
+    } catch (error) {
+        console.error("Failed to fetch user data after login:", error);
+        setError("Could not retrieve your profile and trips. Please try again later.");
+    }
+  }, []);
 
   const handleLoginSuccess = useCallback(() => {
     setIsLoggedIn(true);
     setIsLoginModalOpen(false);
-  }, []);
+    fetchDataAfterAuth();
+  }, [fetchDataAfterAuth]);
 
   const handleSignUpSuccess = useCallback(() => {
     setIsLoggedIn(true);
     setIsSignUpModalOpen(false);
-  }, []);
+    fetchDataAfterAuth();
+  }, [fetchDataAfterAuth]);
   
   const handleLogout = useCallback(() => {
+    xanoService.logout();
     setIsLoggedIn(false);
+    setSavedTrips([]);
+    setUserProfile(DEFAULT_USER_PROFILE);
+    localStorage.removeItem('flyWiseUserProfile');
   }, []);
 
   const openLoginModal = useCallback(() => {
@@ -423,10 +487,39 @@ export default function App() {
     setIsSignUpModalOpen(true);
   }, []);
 
+  const handleEarnPoints = useCallback((points: number, badgeId?: string) => {
+    setGamificationProfile(prev => {
+        const newBadgeIds = [...prev.earnedBadgeIds];
+        let newBadgeUnlocked = false;
+        if (badgeId && !prev.earnedBadgeIds.includes(badgeId)) {
+            newBadgeIds.push(badgeId);
+            newBadgeUnlocked = true;
+        }
+
+        const newProfile = {
+            ...prev,
+            flyWisePoints: prev.flyWisePoints + points,
+            earnedBadgeIds: newBadgeIds,
+        };
+        
+        let alertMessage = `+${points} FlyWise Points!`;
+
+        if (newBadgeUnlocked) {
+            const badge = ALL_BADGES.find(b => b.id === badgeId);
+            alertMessage = `New Badge Unlocked: ${badge?.name || 'New Badge'}!\n\n${alertMessage}`;
+        }
+        
+        alert(alertMessage);
+
+        return newProfile;
+    });
+  }, []);
+
   const handleCreateStory = useCallback((newStory: TravelStoryType) => {
     setStories(prev => [newStory, ...prev]);
     setIsCreateStoryModalOpen(false);
-  }, []);
+    handleEarnPoints(100, 'storyteller');
+  }, [handleEarnPoints]);
   
   const handleMemoryGenerated = useCallback((memory: TripMemory) => {
     if (!generatedMemories.some(m => m.tripId === memory.tripId)) {
@@ -467,6 +560,23 @@ export default function App() {
     alert(alertMessage);
 
   }, [gamificationProfile.earnedBadgeIds]);
+
+  const handleOpenReelModal = useCallback((trip: SavedTrip & { data: ItineraryPlan }) => {
+    setTripForReel(trip);
+    setIsReelGeneratorOpen(true);
+  }, []);
+
+  const handleReelGenerated = useCallback((reel: SocialReel) => {
+    console.log('Generated Reel:', reel); // In a real app, you might save this
+    alert(`Reel "${reel.title}" created successfully!`);
+    setIsReelGeneratorOpen(false);
+  }, []);
+
+  const handleUpdateStory = useCallback((updatedStory: TravelStoryType) => {
+    setStories(prevStories => 
+      prevStories.map(story => story.id === updatedStory.id ? updatedStory : story)
+    );
+  }, []);
 
   const isMoreTabActive = useMemo(() => MORE_TABS.some(tab => tab.name === activeTab), [activeTab]);
 
@@ -561,11 +671,7 @@ export default function App() {
             )}
 
             {activeTab === Tab.Inspire && (
-              <DreamWeaver />
-            )}
-
-            {activeTab === Tab.TrendRadar && (
-              <TravelTrendRadar userProfile={userProfile} />
+              <SocialFeed stories={stories} userProfile={userProfile} onUpdateStory={handleUpdateStory} onEarnPoints={handleEarnPoints} />
             )}
 
             {activeTab === Tab.Coworking && (
@@ -573,7 +679,7 @@ export default function App() {
             )}
 
             {activeTab === Tab.LocalConnections && (
-              <LocalConnectionsHub userProfile={userProfile} onOpenVipModal={onOpenVipModal} onHangoutRequest={setHangoutRequest}/>
+              <HomeShare userProfile={userProfile} onOpenVipModal={onOpenVipModal} onHangoutRequest={setHangoutRequest}/>
             )}
 
             {activeTab === Tab.Chat && (
@@ -600,7 +706,7 @@ export default function App() {
             )}
 
             {activeTab === Tab.TravelBuddy && (
-              <TravelBuddy userProfile={userProfile} onSaveTrip={handleSaveTrip} savedTrips={savedTrips} />
+              <TravelBuddy userProfile={userProfile} onSaveTrip={handleSaveTrip} savedTrips={savedTrips} isOffline={isOffline} />
             )}
 
             {activeTab === Tab.Stories && (
@@ -610,6 +716,9 @@ export default function App() {
                 savedTrips={savedTrips}
                 generatedMemories={generatedMemories}
                 onMemoryGenerated={handleMemoryGenerated}
+                onOpenReelModal={handleOpenReelModal}
+                onUpdateStory={handleUpdateStory}
+                onEarnPoints={handleEarnPoints}
               />
             )}
 
@@ -630,7 +739,7 @@ export default function App() {
             )}
             
             {activeTab === Tab.MyTrips && (
-              <MyTrips savedTrips={savedTrips} onDeleteTrip={handleDeleteTrip} />
+              <MyTrips savedTrips={savedTrips} onDeleteTrip={handleDeleteTrip} isOffline={isOffline} />
             )}
 
             {activeTab === Tab.Wallet && (
@@ -686,7 +795,14 @@ export default function App() {
 
       {isVipModalOpen && <SubscriptionModal onClose={() => setIsVipModalOpen(false)} />}
       {isOnboardingOpen && <OnboardingModal onClose={handleCloseOnboarding} />}
-      {isCreateStoryModalOpen && <CreateStoryModal onClose={() => setIsCreateStoryModalOpen(false)} onCreateStory={handleCreateStory} />}
+      {isCreateStoryModalOpen && <CreateStoryModal onClose={() => setIsCreateStoryModalOpen(false)} onCreateStory={handleCreateStory} onEarnPoints={handleEarnPoints} />}
+      {isReelGeneratorOpen && tripForReel && (
+        <SocialReelGeneratorModal
+            trip={tripForReel}
+            onClose={() => setIsReelGeneratorOpen(false)}
+            onReelGenerated={handleReelGenerated}
+        />
+      )}
     </div>
   );
 }

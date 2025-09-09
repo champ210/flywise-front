@@ -5,7 +5,7 @@ import { Icon } from './Icon';
 import { getHangoutSuggestions } from '../services/geminiService';
 import LoadingSpinner from './LoadingSpinner';
 
-interface LocalDetailProps {
+interface HostDetailProps {
   local: LocalProfile;
   userProfile: UserProfile;
   onBack: () => void;
@@ -21,7 +21,7 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
     </div>
 );
 
-const LocalDetail: React.FC<LocalDetailProps> = ({ local, userProfile, onBack, onOpenVipModal, onHangoutRequest }) => {
+const HostDetail: React.FC<HostDetailProps> = ({ local, userProfile, onBack, onOpenVipModal, onHangoutRequest }) => {
     
     const [hangoutSuggestions, setHangoutSuggestions] = useState<HangoutSuggestion[]>([]);
     const [isHangoutLoading, setIsHangoutLoading] = useState(false);
@@ -212,4 +212,4 @@ const LocalDetail: React.FC<LocalDetailProps> = ({ local, userProfile, onBack, o
     );
 }
 
-export default LocalDetail;
+export default HostDetail;

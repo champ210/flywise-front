@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef } from 'react';
 import { SavedTrip, Checklist, ItineraryPlan, TravelInsuranceQuote } from '../types';
 import { Icon } from './Icon';
@@ -11,9 +12,10 @@ import LoadingSpinner from './LoadingSpinner';
 interface MyTripsProps {
   savedTrips: SavedTrip[];
   onDeleteTrip: (tripId: string) => void;
+  isOffline: boolean;
 }
 
-const MyTrips: React.FC<MyTripsProps> = ({ savedTrips, onDeleteTrip }) => {
+const MyTrips: React.FC<MyTripsProps> = ({ savedTrips, onDeleteTrip, isOffline }) => {
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState<{ type: 'checklist' | 'insurance', tripId: string } | null>(null);
   const [modalData, setModalData] = useState<{ trip: SavedTrip, checklist: Checklist } | null>(null);
@@ -133,19 +135,19 @@ const MyTrips: React.FC<MyTripsProps> = ({ savedTrips, onDeleteTrip }) => {
                       <>
                         <button
                             onClick={() => handleGetInsurance(trip)}
-                            disabled={!!isGenerating}
+                            disabled={!!isGenerating || isOffline}
                             className="p-2 rounded-full text-slate-500 hover:bg-blue-50 hover:text-blue-600 disabled:text-slate-300 disabled:cursor-not-allowed"
                             aria-label={`Get insurance quotes for ${trip.name}`}
-                            title="Get Insurance Quotes"
+                            title={isOffline ? "Feature unavailable offline" : "Get Insurance Quotes"}
                         >
                             {isGenerating?.type === 'insurance' && isGenerating?.tripId === trip.id ? <LoadingSpinner /> : <Icon name="shield" className="h-5 w-5" />}
                         </button>
                         <button
                             onClick={() => handleGenerateChecklist(trip)}
-                            disabled={!!isGenerating}
+                            disabled={!!isGenerating || isOffline}
                             className="p-2 rounded-full text-slate-500 hover:bg-blue-50 hover:text-blue-600 disabled:text-slate-300 disabled:cursor-not-allowed"
                             aria-label={`Generate checklist for ${trip.name}`}
-                            title="Generate Checklist"
+                            title={isOffline ? "Feature unavailable offline" : "Generate Checklist"}
                         >
                             {isGenerating?.type === 'checklist' && isGenerating?.tripId === trip.id ? <LoadingSpinner /> : <Icon name="lightbulb" className="h-5 w-5" />}
                         </button>

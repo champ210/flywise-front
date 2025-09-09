@@ -7,9 +7,10 @@ interface MyMemoriesProps {
   generatedMemories: TripMemory[];
   onGenerate: (trip: SavedTrip & { data: ItineraryPlan }) => void;
   onView: (tripId: string) => void;
+  onOpenReelModal: (trip: SavedTrip & { data: ItineraryPlan }) => void;
 }
 
-const MyMemories: React.FC<MyMemoriesProps> = ({ itineraryTrips, generatedMemories, onGenerate, onView }) => {
+const MyMemories: React.FC<MyMemoriesProps> = ({ itineraryTrips, generatedMemories, onGenerate, onView, onOpenReelModal }) => {
   if (itineraryTrips.length === 0) {
     return (
       <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
@@ -32,23 +33,32 @@ const MyMemories: React.FC<MyMemoriesProps> = ({ itineraryTrips, generatedMemori
                 {trip.data.itinerary.length} days, saved on {new Date(trip.createdAt).toLocaleDateString()}
               </p>
             </div>
-            {hasMemory ? (
-              <button
-                onClick={() => onView(trip.id)}
-                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+              {hasMemory ? (
+                 <button
+                  onClick={() => onView(trip.id)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50"
+                >
+                  <Icon name="eye" className="h-5 w-5 mr-2" />
+                  View Journal
+                </button>
+              ) : (
+                <button
+                  onClick={() => onGenerate(trip)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <Icon name="sparkles" className="h-5 w-5 mr-2" />
+                  Generate Journal
+                </button>
+              )}
+               <button
+                onClick={() => onOpenReelModal(trip)}
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
               >
-                <Icon name="eye" className="h-5 w-5 mr-2" />
-                View Memory
+                <Icon name="movie" className="h-5 w-5 mr-2" />
+                Create Reel
               </button>
-            ) : (
-              <button
-                onClick={() => onGenerate(trip)}
-                className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Icon name="sparkles" className="h-5 w-5 mr-2" />
-                Generate Memory
-              </button>
-            )}
+            </div>
           </div>
         );
       })}

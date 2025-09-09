@@ -13,9 +13,12 @@ interface MemoriesHubProps {
   savedTrips: SavedTrip[];
   generatedMemories: TripMemory[];
   onMemoryGenerated: (memory: TripMemory) => void;
+  onOpenReelModal: (trip: SavedTrip & { data: ItineraryPlan }) => void;
+  onUpdateStory: (story: TravelStory) => void;
+  onEarnPoints: (points: number, badgeId?: string) => void;
 }
 
-const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, savedTrips, generatedMemories, onMemoryGenerated }) => {
+const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, savedTrips, generatedMemories, onMemoryGenerated, onOpenReelModal, onUpdateStory, onEarnPoints }) => {
   const [activeTab, setActiveTab] = useState<'stories' | 'memories'>('stories');
   const [selectedMemory, setSelectedMemory] = useState<TripMemory | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +57,7 @@ const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, s
 
   return (
     <>
-      {isLoading && <LoadingOverlay message="Composing your travel story..." />}
+      {isLoading && <LoadingOverlay message="Composing your travel journal..." />}
       <div className="max-w-4xl mx-auto p-2 sm:p-4 animate-fade-in-up">
         {error && (
             <div className="my-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -63,7 +66,7 @@ const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, s
         )}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
             <div className="text-center sm:text-left">
-                <h2 className="text-2xl font-bold text-slate-800">Memories & Stories</h2>
+                <h2 className="text-2xl font-bold text-slate-800">Trip Journals</h2>
                 <p className="mt-2 text-sm text-slate-600">
                     Relive your adventures and get inspired by others.
                 </p>
@@ -84,14 +87,14 @@ const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, s
                 Community Stories
             </button>
             <button onClick={() => setActiveTab('memories')} className={`px-6 py-3 text-sm font-semibold flex items-center gap-2 border-b-2 ${activeTab === 'memories' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-                My Memories
+                My Journals
             </button>
         </div>
         
         {activeTab === 'stories' ? (
              <div className="space-y-8">
                 {stories.map(story => (
-                <StoryCard key={story.id} story={story} />
+                <StoryCard key={story.id} story={story} onUpdateStory={onUpdateStory} onEarnPoints={onEarnPoints} />
                 ))}
             </div>
         ) : (
@@ -100,6 +103,7 @@ const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, s
                 generatedMemories={generatedMemories}
                 onGenerate={handleGenerateMemory}
                 onView={handleViewMemory}
+                onOpenReelModal={onOpenReelModal}
             />
         )}
       </div>

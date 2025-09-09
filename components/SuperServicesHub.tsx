@@ -1,10 +1,10 @@
 
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UserProfile, SavedTrip, SuperServiceData, Restaurant, RideOption, ServiceApp } from '../types';
 import { getSuperServiceData } from '../services/geminiService';
 import { Icon } from './Icon';
 import LoadingSpinner from './LoadingSpinner';
+import ServiceProviderDashboard from './ServiceProviderDashboard';
 
 interface SuperServicesHubProps {
   userProfile: UserProfile;
@@ -65,10 +65,25 @@ const ServiceAppCard: React.FC<{ app: ServiceApp }> = ({ app }) => (
 
 
 const SuperServicesHub: React.FC<SuperServicesHubProps> = ({ userProfile, savedTrips, onOrderFood, onBookRide }) => {
+    const [mode, setMode] = useState<'finding' | 'providing'>('finding');
     const [location, setLocation] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<SuperServiceData | null>(null);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+     useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            setIsDropdownOpen(false);
+        }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const handleSearch = useCallback(async () => {
         if (!location.trim()) {
@@ -88,17 +103,40 @@ const SuperServicesHub: React.FC<SuperServicesHubProps> = ({ userProfile, savedT
         }
     }, [location, userProfile, savedTrips]);
     
+    if (mode === 'providing') {
+        return <ServiceProviderDashboard onSwitchToFinding={() => setMode('finding')} />;
+    }
+
     const foodApps = data?.availableApps.filter(app => app.category === 'Food Delivery') || [];
     const rideApps = data?.availableApps.filter(app => app.category === 'Ride-Hailing') || [];
 
     return (
         <div className="max-w-6xl mx-auto p-2 sm:p-4">
-            <div className="text-center">
-                <Icon name="apps" className="h-12 w-12 text-blue-600 mx-auto" />
-                <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-800">Super Services Hub</h2>
-                <p className="mt-2 text-md text-slate-600 max-w-2xl mx-auto">
-                    Your all-in-one hub for food and transport. Order meals or book rides from top providers without leaving the app.
-                </p>
+             <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-4 gap-4">
+                <div className="text-center sm:text-left">
+                    <Icon name="apps" className="h-12 w-12 text-blue-600 mx-auto sm:mx-0" />
+                    <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-800">Super Services Hub</h2>
+                    <p className="mt-2 text-md text-slate-600 max-w-2xl">
+                        Your all-in-one hub for food and transport.
+                    </p>
+                </div>
+                <div ref={dropdownRef} className="relative flex-shrink-0 w-full sm:w-auto">
+                    <button
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50"
+                    >
+                        {mode === 'finding' ? 'Finding Services' : 'Provider Dashboard'}
+                        <Icon name="chevron-down" className={`-mr-1 ml-2 h-5 w-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isDropdownOpen && (
+                        <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 animate-fade-in">
+                            <div className="py-1">
+                                <a href="#" onClick={(e) => { e.preventDefault(); setMode('finding'); setIsDropdownOpen(false); }} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Find Services</a>
+                                <a href="#" onClick={(e) => { e.preventDefault(); setMode('providing'); setIsDropdownOpen(false); }} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Become a Provider</a>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="mt-8 max-w-lg mx-auto p-4 bg-slate-50 border border-slate-200 rounded-lg">

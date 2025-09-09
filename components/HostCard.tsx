@@ -3,12 +3,12 @@ import React from 'react';
 import { LocalProfile } from '../types';
 import { Icon } from './Icon';
 
-interface LocalCardProps {
+interface HostCardProps {
   local: LocalProfile;
   onSelect: () => void;
 }
 
-const LocalCard: React.FC<LocalCardProps> = ({ local, onSelect }) => {
+const HostCard: React.FC<HostCardProps> = ({ local, onSelect }) => {
   const compatibilityColor =
     local.compatibilityScore > 85
       ? 'bg-green-100 text-green-800'
@@ -53,4 +53,4 @@ const LocalCard: React.FC<LocalCardProps> = ({ local, onSelect }) => {
   );
 };
 
-export default LocalCard;
+export default HostCard;

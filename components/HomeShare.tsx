@@ -1,26 +1,41 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UserProfile, LocalProfile, HangoutSuggestion } from '../types';
 import { getAILocalMatches } from '../services/geminiService';
 import { Icon } from './Icon';
 import LoadingSpinner from './LoadingSpinner';
-// FIX: Corrected import paths to match file names.
-import LocalCard from './HostCard';
-import LocalDetail from './HostDetail';
+import HostCard from './HostCard';
+import HostDetail from './HostDetail';
+import HostDashboard from './HostDashboard';
 
-interface LocalConnectionsHubProps {
+interface HomeShareProps {
   userProfile: UserProfile;
   onOpenVipModal: () => void;
   onHangoutRequest: (details: {local: LocalProfile, suggestion: HangoutSuggestion}) => void;
 }
 
-const LocalConnectionsHub: React.FC<LocalConnectionsHubProps> = ({ userProfile, onOpenVipModal, onHangoutRequest }) => {
+const HomeShare: React.FC<HomeShareProps> = ({ userProfile, onOpenVipModal, onHangoutRequest }) => {
+  const [mode, setMode] = useState<'finding' | 'hosting'>('finding');
   const [activeTab, setActiveTab] = useState<'stay' | 'hangout'>('hangout');
   const [location, setLocation] = useState('');
   const [locals, setLocals] = useState<LocalProfile[]>([]);
   const [selectedLocal, setSelectedLocal] = useState<LocalProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -45,20 +60,44 @@ const LocalConnectionsHub: React.FC<LocalConnectionsHubProps> = ({ userProfile, 
   }, [location, userProfile, activeTab]);
 
   if (selectedLocal) {
-    return <LocalDetail local={selectedLocal} onBack={() => setSelectedLocal(null)} onOpenVipModal={onOpenVipModal} onHangoutRequest={onHangoutRequest} userProfile={userProfile} />;
+    return <HostDetail local={selectedLocal} onBack={() => setSelectedLocal(null)} onOpenVipModal={onOpenVipModal} onHangoutRequest={onHangoutRequest} userProfile={userProfile} />;
   }
 
-  const title = activeTab === 'stay' ? 'Local Stays' : 'Local Hangouts';
+  if (mode === 'hosting') {
+    return <HostDashboard onSwitchToFinding={() => setMode('finding')} />;
+  }
+
   const description = activeTab === 'stay'
     ? "Connect with local hosts for authentic travel experiences. Stay for free or a small fee, and see the world through a local's eyes."
     : "Connect with friendly locals for authentic social experiences, guided activities, or casual meetups.";
 
   return (
     <div className="max-w-5xl mx-auto p-2 sm:p-4 animate-fade-in-up">
-      <div className="text-center">
-        <Icon name="users" className="h-12 w-12 text-blue-600 mx-auto" />
-        <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-800">Local Connections</h2>
-        <p className="mt-2 text-md text-slate-600 max-w-2xl mx-auto">{description}</p>
+       <div className="flex justify-between items-start mb-4">
+        <div className="text-left">
+            <Icon name="users" className="h-12 w-12 text-blue-600 mb-2" />
+            <h2 className="text-3xl font-bold tracking-tight text-slate-800">Local Connections</h2>
+             <p className="mt-1 text-md text-slate-600 max-w-2xl">{description}</p>
+        </div>
+         <div ref={dropdownRef} className="relative flex-shrink-0">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50"
+            aria-haspopup="true"
+            aria-expanded={isDropdownOpen}
+          >
+            {mode === 'finding' ? 'Finding Connections' : 'Host Dashboard'}
+            <Icon name="chevron-down" className={`-mr-1 ml-2 h-5 w-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {isDropdownOpen && (
+            <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 animate-fade-in">
+              <div className="py-1" role="menu" aria-orientation="vertical">
+                <a href="#" onClick={(e) => { e.preventDefault(); setMode('finding'); setIsDropdownOpen(false); }} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">Find Connections</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); setMode('hosting'); setIsDropdownOpen(false); }} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">Become a Host</a>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mt-8 flex justify-center items-center border-b border-slate-200">
@@ -103,7 +142,7 @@ const LocalConnectionsHub: React.FC<LocalConnectionsHubProps> = ({ userProfile, 
         {locals.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {locals.map(local => (
-                    <LocalCard key={local.id} local={local} onSelect={() => setSelectedLocal(local)} />
+                    <HostCard key={local.id} local={local} onSelect={() => setSelectedLocal(local)} />
                 ))}
             </div>
         )}
@@ -120,4 +159,4 @@ const LocalConnectionsHub: React.FC<LocalConnectionsHubProps> = ({ userProfile, 
   );
 };
 
-export default LocalConnectionsHub;
+export default HomeShare;
