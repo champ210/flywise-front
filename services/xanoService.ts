@@ -1,7 +1,6 @@
 import { SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, PassengerDetails, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation } from '../types';
 
-// IMPORTANT: Replace with your actual Xano API group base URL
-const XANO_BASE_URL = 'https://x8ki-letl-twmt.n7.xano.io/api:YourApiGroupName';
+const XANO_BASE_URL = process.env.XANO_BASE_URL;
 
 const TOKEN_KEY = 'flywise_auth_token';
 
@@ -43,6 +42,10 @@ const apiRequest = async <T>(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 
         headers['Authorization'] = `Bearer ${token}`;
     }
 
+    if (!XANO_BASE_URL) {
+        throw new Error("Xano API URL is not configured. Please set XANO_BASE_URL in your environment.");
+    }
+    
     const response = await fetch(`${XANO_BASE_URL}${endpoint}`, {
         method,
         headers,
