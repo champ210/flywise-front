@@ -7,8 +7,16 @@ export interface Flight {
   type: 'flight';
   airline: string;
   flightNumber: string;
-  departureAirport: string;
-  arrivalAirport: string;
+  departure: {
+    airport: string;
+    city: string;
+    scheduledTime: string;
+  };
+  arrival: {
+    airport: string;
+    city: string;
+    scheduledTime: string;
+  };
   departureTime: string;
   arrivalTime: string;
   duration: string;
@@ -82,13 +90,13 @@ export interface AlternativeSuggestion {
 
 // For multi-part chat queries
 export interface ItinerarySuggestion {
-    name: string;
-    description: string;
+  name: string;
+  description: string;
 }
 
 export interface ItinerarySnippet {
-    destination: string;
-    suggestions: ItinerarySuggestion[];
+  destination: string;
+  suggestions: ItinerarySuggestion[];
 }
 
 // For Real-Time Adaptive Concierge
@@ -147,11 +155,11 @@ export interface ItineraryRequestParams {
 }
 
 export interface ApiParams {
-    analyzedQuery: string;
-    flight_search_params?: FlightSearchParams;
-    hotel_search_params?: HotelSearchParams;
-    car_search_params?: CarSearchParams;
-    itinerary_request?: ItineraryRequestParams;
+  analyzedQuery: string;
+  flight_search_params?: FlightSearchParams;
+  hotel_search_params?: HotelSearchParams;
+  car_search_params?: CarSearchParams;
+  itinerary_request?: ItineraryRequestParams;
 }
 
 // Types for the Itinerary Planner
@@ -196,24 +204,24 @@ export interface SavedTrip {
 
 // Types for the Travel Checklist feature
 export interface GroundingSource {
-    uri: string;
-    title: string;
+  uri: string;
+  title: string;
 }
 
 export interface ChecklistItem {
-    item: string;
-    checked: boolean;
+  item: string;
+  checked: boolean;
 }
 
 export interface ChecklistDocuments {
-    items: ChecklistItem[];
-    sources?: GroundingSource[];
+  items: ChecklistItem[];
+  sources?: GroundingSource[];
 }
 
 export interface Checklist {
-    packingList: ChecklistItem[];
-    documents: ChecklistDocuments;
-    localEssentials: ChecklistItem[];
+  packingList: ChecklistItem[];
+  documents: ChecklistDocuments;
+  localEssentials: ChecklistItem[];
 }
 
 // Types for Map View feature
@@ -256,7 +264,7 @@ export interface LocalVibe {
 
 // Types for Currency Converter
 export type ExchangeRates = {
-    [currencyCode: string]: number;
+  [currencyCode: string]: number;
 };
 
 // For User Profile
@@ -353,19 +361,19 @@ export interface CommunityPost {
 }
 
 export interface CommunityAnswer {
-    id: string;
-    author: CommunityMember;
-    content: string;
-    createdAt: string; // ISO string
+  id: string;
+  author: CommunityMember;
+  content: string;
+  createdAt: string; // ISO string
 }
 
 export interface CommunityQuestion {
-    id: string;
-    author: CommunityMember;
-    question: string;
-    createdAt: string; // ISO string
-    answers: CommunityAnswer[];
-    aiSummary?: string;
+  id: string;
+  author: CommunityMember;
+  question: string;
+  createdAt: string; // ISO string
+  answers: CommunityAnswer[];
+  aiSummary?: string;
 }
 
 export interface Community {
@@ -442,7 +450,7 @@ export interface CarBookingConfirmation {
 
 
 // For Group Planning
-export interface GroupTripMember extends CommunityMember {}
+export interface GroupTripMember extends CommunityMember { }
 
 export interface GroupTripTask {
   id: string;
@@ -458,7 +466,7 @@ export interface VotingOption {
 }
 
 export interface GroupTripPoll {
-  id:string;
+  id: string;
   question: string;
   options: VotingOption[];
   isClosed?: boolean;
@@ -519,18 +527,18 @@ export interface VoyageurLevel {
 }
 
 export interface PassportStamp {
-    country: string;
-    city: string;
-    date: string; // ISO string
-    crestUrl: string; // A URL to a crest/stamp image
+  country: string;
+  city: string;
+  date: string; // ISO string
+  crestUrl: string; // A URL to a crest/stamp image
 }
 
 export interface AIVoyageMission {
-    title: string;
-    description: string;
-    destination: string;
-    badgeToUnlock: string; // ID of the badge
-    pointsToEarn: number;
+  title: string;
+  description: string;
+  destination: string;
+  badgeToUnlock: string; // ID of the badge
+  pointsToEarn: number;
 }
 
 export interface GamificationProfile {
@@ -555,7 +563,7 @@ export interface DestinationSuggestion {
 }
 
 export interface VibeSearchResult {
-  images: string[]; // Array of base64 encoded image strings
+  images?: (string | undefined)[]; // Array of base64 encoded image strings
   destinations: DestinationSuggestion[];
 }
 
@@ -599,10 +607,10 @@ export interface LocalProfile {
 }
 
 export interface HangoutSuggestion {
-    title: string;
-    description: string;
-    location: string;
-    estimatedCost: string; // e.g., "Free", "$10-20", etc.
+  title: string;
+  description: string;
+  location: string;
+  estimatedCost: string; // e.g., "Free", "$10-20", etc.
 }
 
 // For Super Services Hub
@@ -613,72 +621,72 @@ export interface ServiceApp {
 }
 
 export interface MenuItem {
-    name: string;
-    price: string; // e.g., "$12.99"
-    description: string;
+  name: string;
+  price: string; // e.g., "$12.99"
+  description: string;
 }
 
 export interface Restaurant {
-    id: string;
-    name: string;
-    cuisine: string[];
-    rating: number;
-    priceRange: '$' | '$$' | '$$$' | '$$$$';
-    deliveryTime: string;
-    deliveryFee: number;
-    imageUrl: string;
-    menu: MenuItem[];
-    provider: string; // e.g., "Uber Eats"
+  id: string;
+  name: string;
+  cuisine: string[];
+  rating: number;
+  priceRange: '$' | '$$' | '$$$' | '$$$$';
+  deliveryTime: string;
+  deliveryFee: number;
+  imageUrl: string;
+  menu: MenuItem[];
+  provider: string; // e.g., "Uber Eats"
 }
 
 export interface RideOption {
-    id: string;
-    serviceName: string;
-    serviceLogoUrl: string;
-    vehicleType: string; // e.g., "Standard", "XL", "Luxury"
-    eta: string; // e.g., "5 min"
-    estimatedPrice: number;
-    passengerCapacity: number;
+  id: string;
+  serviceName: string;
+  serviceLogoUrl: string;
+  vehicleType: string; // e.g., "Standard", "XL", "Luxury"
+  eta: string; // e.g., "5 min"
+  estimatedPrice: number;
+  passengerCapacity: number;
 }
 
 export interface FoodSuggestion {
-    restaurant: Restaurant;
-    reason: string; // e.g., "Perfect for a quick, healthy lunch near you."
+  restaurant: Restaurant;
+  reason: string; // e.g., "Perfect for a quick, healthy lunch near you."
 }
 
 export interface RideSuggestion {
-    destination: string; // e.g., "Eiffel Tower"
-    reason: string; // e.g., "Best way to get to your next itinerary item."
-    options: RideOption[];
+  destination: string; // e.g., "Eiffel Tower"
+  reason: string; // e.g., "Best way to get to your next itinerary item."
+  options: RideOption[];
 }
 
 export interface SuperServiceData {
-    availableApps: ServiceApp[];
-    restaurants: Restaurant[];
-    foodSuggestions: FoodSuggestion[];
-    rideSuggestion: RideSuggestion | null;
-    smartCombo: {
-        title: string;
-        description: string;
-        restaurant: Restaurant;
-        ride: RideOption;
-    } | null;
+  availableApps: ServiceApp[];
+  restaurants: Restaurant[];
+  foodSuggestions: FoodSuggestion[];
+  rideSuggestion: RideSuggestion | null;
+  smartCombo: {
+    title: string;
+    description: string;
+    restaurant: Restaurant;
+    ride: RideOption;
+  } | null;
 }
 
 export interface FoodOrderConfirmation {
-    orderId: string;
-    restaurant: Restaurant;
-    totalPaid: number;
-    estimatedDelivery: string;
-    coinsEarned: number;
+  orderId: string;
+  restaurant: Restaurant;
+  totalPaid: number;
+  estimatedDelivery: string;
+  coinsEarned: number;
 }
 
 export interface RideBookingConfirmation {
-    bookingId: string;
-    ride: RideOption;
-    destination: string;
-    totalPaid: number;
-    coinsEarned: number;
+  bookingId: string;
+  ride?: RideOption;
+  destination?: string;
+  totalPaid?: number;
+  coinsEarned: number;
 }
 
 // For Storytelling & Memories
@@ -698,8 +706,8 @@ export interface TripMemory {
 
 // For Social Sharing
 export interface SocialPostSuggestion {
-    caption: string;
-    hashtags: string; // A single string of space-separated hashtags, e.g., "#travel #kyoto #japan"
+  caption: string;
+  hashtags: string; // A single string of space-separated hashtags, e.g., "#travel #kyoto #japan"
 }
 
 // For AI Social Reel Generator
@@ -718,7 +726,7 @@ export interface SocialReel {
 
 
 // For Coworking Spaces
-export interface CoworkingReview extends UserReview {}
+export interface CoworkingReview extends UserReview { }
 
 export interface CoworkingSpace {
   id: string;
@@ -766,11 +774,11 @@ export interface AIHomeSuggestion {
 
 // For Budget Optimizer
 export interface BudgetOptimizationSuggestion {
-    type: 'Stay' | 'Activity' | 'Transport' | 'Food';
-    originalItem: string;
-    suggestedAlternative: string;
-    reason: string;
-    estimatedSavings: number;
+  type: 'Stay' | 'Activity' | 'Transport' | 'Food';
+  originalItem: string;
+  suggestedAlternative: string;
+  reason: string;
+  estimatedSavings: number;
 }
 
 // For Flight Tracker
@@ -812,7 +820,7 @@ export interface FlightStatus {
     type: string;
     registration: string | null;
   };
-  livePosition: {
+  live: {
     latitude: number;
     longitude: number;
     altitude: number; // in feet
@@ -849,13 +857,13 @@ export interface WandergramPost {
 }
 
 export interface WandergramStory {
-    id: string;
-    user: {
-        name: string;
-        avatarUrl: string;
-    };
-    imageUrl: string; // The content of the story
-    viewed: boolean;
+  id: string;
+  user: {
+    name: string;
+    avatarUrl: string;
+  };
+  imageUrl: string; // The content of the story
+  viewed: boolean;
 }
 
 // For AI Discovery Layer
