@@ -1,9 +1,8 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Stay, PassengerDetails, StayBookingConfirmation } from '../types';
 import { Icon } from './Icon';
 import LoadingSpinner from './LoadingSpinner';
+import * as xanoService from '../services/xanoService';
 
 interface StayBookingProps {
   stay: Stay;
@@ -21,6 +20,7 @@ const StayBooking: React.FC<StayBookingProps> = ({ stay, onClose, onBookingCompl
     phone: '',
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [bookingConfirmation, setBookingConfirmation] = useState<StayBookingConfirmation | null>(null);
   
   useEffect(() => {
     document.body.classList.add('overflow-hidden');
@@ -37,23 +37,26 @@ const StayBooking: React.FC<StayBookingProps> = ({ stay, onClose, onBookingCompl
   const handleNext = () => setStep(prev => prev + 1);
   const handleBack = () => setStep(prev => prev - 1);
 
-  const handleSubmitBooking = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitBooking = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      const confirmationResult = await xanoService.bookStay({ stay, guest });
+      setBookingConfirmation(confirmationResult);
+      setStep(4);
+    } catch (error) {
+      console.error("Booking failed:", error);
+      alert(`Booking failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
       setIsProcessing(false);
-      setStep(4); 
-    }, 2000);
+    }
   };
 
   const handleFinish = () => {
-    const confirmation: StayBookingConfirmation = {
-      bookingReference: `FW-S${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      stay,
-      guest,
-      totalPaid: totalPrice
-    };
-    onBookingComplete(confirmation);
+    if (bookingConfirmation) {
+      onBookingComplete(bookingConfirmation);
+    } else {
+      onClose();
+    }
   };
 
   const STEPS = ['Review Stay', 'Guest Details', 'Payment', 'Confirmation'];
@@ -106,7 +109,7 @@ const StayBooking: React.FC<StayBookingProps> = ({ stay, onClose, onBookingCompl
             <div className="bg-blue-50 border-l-4 border-blue-400 p-4 text-sm text-blue-700 mb-4">
                 <p>This is a simulated payment form. Do not enter real credit card details.</p>
             </div>
-            <form onSubmit={handleSubmitBooking} className="space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
               <input type="text" name="cardholderName" placeholder="Cardholder Name" className="w-full rounded-md border-slate-300 shadow-sm" required />
               <input type="text" name="cardNumber" placeholder="Card Number (e.g., 4242 4242...)" className="w-full rounded-md border-slate-300 shadow-sm" required />
               <div className="grid grid-cols-2 gap-4">
@@ -117,15 +120,23 @@ const StayBooking: React.FC<StayBookingProps> = ({ stay, onClose, onBookingCompl
           </div>
         );
       case 4:
+        if (!bookingConfirmation) {
+          return (
+            <div className="text-center">
+              <LoadingSpinner />
+              <p>Finalizing booking...</p>
+            </div>
+          );
+        }
         return (
           <div className="text-center">
             <Icon name="check-circle" className="h-16 w-16 text-green-500 mx-auto" />
             <h3 className="mt-4 text-2xl font-bold text-slate-800">Booking Confirmed!</h3>
             <p className="mt-2 text-slate-600">Your stay at {stay.name} is booked. A confirmation has been sent to your email.</p>
             <div className="mt-6 text-left bg-slate-100 p-4 rounded-lg text-sm">
-                <p><strong>Booking Reference:</strong> <span className="font-mono bg-slate-200 px-2 py-1 rounded">FW-S{Math.random().toString(36).substring(2, 8).toUpperCase()}</span></p>
-                <p className="mt-2"><strong>Guest:</strong> {guest.firstName} {guest.lastName}</p>
-                <p><strong>Total Paid:</strong> ${totalPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                <p><strong>Booking Reference:</strong> <span className="font-mono bg-slate-200 px-2 py-1 rounded">{bookingConfirmation.bookingReference}</span></p>
+                <p className="mt-2"><strong>Guest:</strong> {bookingConfirmation.guest.firstName} {bookingConfirmation.guest.lastName}</p>
+                <p><strong>Total Paid:</strong> ${bookingConfirmation.totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
             </div>
           </div>
         );

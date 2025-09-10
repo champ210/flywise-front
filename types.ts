@@ -1,7 +1,3 @@
-
-
-
-
 export interface PricePrediction {
   recommendation: 'Wait' | 'Buy Now';
   reason: string;
@@ -335,6 +331,9 @@ export interface TravelStory {
   likes: number;
   createdAt: string; // ISO string
   comments?: Comment[];
+  aiSummary?: string;
+  estimatedCost?: number;
+  tags?: string[];
 }
 
 // For Travel Communities
@@ -606,24 +605,6 @@ export interface HangoutSuggestion {
     estimatedCost: string; // e.g., "Free", "$10-20", etc.
 }
 
-
-// For Travel Trend Radar
-export interface SocialProof {
-    platform: 'TikTok' | 'Instagram' | 'Booking' | 'FlyWise';
-    value: string; // e.g., "1.5M Views", "+120% Increase"
-}
-
-export interface TravelTrend {
-    id: string;
-    destination: string;
-    image: string;
-    trendScore: number; // 0-100
-    monthlyGrowth: number; // percentage
-    category: 'Adventure' | 'City Break' | 'Relaxation' | 'Cultural' | 'Hidden Gem';
-    socialProof: SocialProof[];
-    personalizationReason: string;
-}
-
 // For Super Services Hub
 export interface ServiceApp {
   name: string;
@@ -720,6 +701,21 @@ export interface SocialPostSuggestion {
     caption: string;
     hashtags: string; // A single string of space-separated hashtags, e.g., "#travel #kyoto #japan"
 }
+
+// For AI Social Reel Generator
+export interface SocialReelScene {
+  imageUrl: string; // The base64 data URL of the user's uploaded image
+  overlayText: string; // AI-generated text for this scene
+}
+
+export interface SocialReel {
+  tripId: string;
+  title: string;
+  musicSuggestion: string; // e.g., "Upbeat indie pop like 'Good Days' by SZA"
+  scenes: SocialReelScene[];
+  socialPost: SocialPostSuggestion; // Reuse existing type
+}
+
 
 // For Coworking Spaces
 export interface CoworkingReview extends UserReview {}
@@ -825,4 +821,85 @@ export interface FlightStatus {
   progressPercent: number;
   aiSummary: string;
   waypoints?: Waypoint[];
+}
+
+// For Wandergram Feature
+export interface WandergramComment {
+  id: string;
+  user: {
+    name: string;
+    avatarUrl: string;
+  };
+  text: string;
+  createdAt: string; // ISO string
+}
+
+export interface WandergramPost {
+  id: string;
+  user: {
+    name: string;
+    avatarUrl: string;
+  };
+  imageUrl: string;
+  caption: string;
+  location?: string;
+  likes: number;
+  comments: WandergramComment[];
+  createdAt: string; // ISO string
+}
+
+export interface WandergramStory {
+    id: string;
+    user: {
+        name: string;
+        avatarUrl: string;
+    };
+    imageUrl: string; // The content of the story
+    viewed: boolean;
+}
+
+// For AI Discovery Layer
+export interface AIDiscoveryData {
+  trendingDestinations: {
+    destination: string;
+    image: string; // URL from a related story
+    reason: string;
+  }[];
+  hiddenGems: WandergramPost['id'][]; // Array of WandergramPost IDs
+  recommendations: WandergramPost['id'][]; // Array of WandergramPost IDs
+}
+
+// For Travel Trend Radar
+export interface SocialProof {
+  platform: 'TikTok' | 'Instagram' | 'Booking' | 'FlyWise';
+  value: string; // e.g., "2.1M views", "8.5/10", "Trending"
+}
+
+export interface TravelTrend {
+  id: string;
+  destination: string;
+  image: string; // URL
+  category: 'Adventure' | 'City Break' | 'Relaxation' | 'Cultural' | 'Hidden Gem';
+  trendScore: number; // 0-100
+  monthlyGrowth: number; // Percentage
+  socialProof: SocialProof[];
+  personalizationReason: string;
+}
+
+// For Wandergram Chat
+export interface WandergramChatMessage {
+  id: string;
+  senderId: string; // 'currentUser' or the other user's ID
+  text: string;
+  createdAt: string; // ISO string
+}
+
+export interface WandergramConversation {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string;
+  };
+  messages: WandergramChatMessage[];
 }

@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
@@ -9,14 +6,12 @@ import ItineraryPlanner from './components/ItineraryPlanner';
 import MyTrips from './components/MyTrips';
 import ResultsList from './components/ResultsList';
 import { Icon } from './components/Icon';
-import { SearchResult, SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, GamificationProfile, TravelStory as TravelStoryType, Restaurant, RideOption, FoodOrderConfirmation, RideBookingConfirmation, TripMemory, LocalProfile, HangoutSuggestion, CoworkingSpace, CoworkingBookingConfirmation, Community } from './types';
+import { SearchResult, SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, GamificationProfile, Restaurant, RideOption, FoodOrderConfirmation, RideBookingConfirmation, LocalProfile, HangoutSuggestion, CoworkingSpace, CoworkingBookingConfirmation, Community, ItineraryPlan, WandergramPost, WandergramStory, WandergramComment, WandergramConversation, WandergramChatMessage } from './types';
 import SubscriptionModal from './components/SubscriptionModal';
 import CurrencyConverter from './components/CurrencyConverter';
 import OnboardingModal from './components/OnboardingModal';
 import UserProfile from './components/UserProfile';
 import TravelBuddy from './components/TravelBuddy';
-// FIX: Corrected import path for MemoriesHub component.
-import MemoriesHub from './components/TravelStories';
 import TravelCommunities from './components/TravelCommunities';
 import MeetupEvents from './components/MeetupEvents';
 import FlightBooking from './components/FlightBooking';
@@ -28,11 +23,7 @@ import SocialPassport from './components/SocialPassport';
 import LoginModal from './components/LoginModal';
 import SignUpModal from './components/SignUpModal';
 import Wallet from './components/Wallet';
-import CreateStoryModal from './components/CreateStoryModal';
-import DreamWeaver from './components/DreamWeaver';
-// FIX: Corrected import path for LocalConnectionsHub component.
-import LocalConnectionsHub from './components/HomeShare';
-import TravelTrendRadar from './components/TravelTrendRadar';
+import HomeShare from './components/HomeShare';
 import SuperServicesHub from './components/SuperServicesHub';
 import FoodOrderModal from './components/FoodOrderModal';
 import RideBookingModal from './components/RideBookingModal';
@@ -41,30 +32,35 @@ import CoworkingHub from './components/CoworkingHub';
 import CoworkingBooking from './components/CoworkingBooking';
 import HomeDashboard from './components/HomeDashboard';
 import * as dbService from './services/dbService';
+import * as xanoService from './services/xanoService';
 import FlightTracker from './components/FlightTracker';
+import { ALL_BADGES } from './data/gamification';
+import Wandergram from './components/Wandergram';
+import CreateWandergramPostModal from './components/CreateWandergramPostModal';
+import AskAiAboutPhotoModal from './components/AskAiAboutPhotoModal';
+import DreamWeaver from './components/DreamWeaver';
 
 export enum Tab {
   Home = 'Home',
   FlightTracker = 'Flight Tracker',
-  Search = 'Search',
+  Inspire = 'Inspire',
   Chat = 'Chat',
   Planner = 'Planner',
-  Checklist = 'Checklist',
-  MyTrips = 'My Trips',
-  Wallet = 'Wallet',
-  Converter = 'Converter',
-  Profile = 'My Profile',
-  TravelBuddy = 'Travel Buddy',
-  Stories = 'Trip Journals',
-  Communities = 'Communities',
-  Events = 'Meetup Events',
-  GroupPlanning = 'Group Planning',
-  Passport = 'Passport',
-  Inspire = 'Inspire',
-  LocalConnections = 'Local Connections',
-  TrendRadar = 'Trend Radar',
   SuperServices = 'Super Services',
   Coworking = 'Coworking',
+  LocalConnections = 'Local Connections',
+  // More menu tabs
+  MyTrips = 'My Trips',
+  Checklist = 'Checklist',
+  GroupPlanning = 'Group Planning',
+  Wandergram = 'Wandergram',
+  TravelBuddy = 'Travel Buddy',
+  Events = 'Meetup Events',
+  Wallet = 'Wallet',
+  Converter = 'Converter',
+  Passport = 'Passport',
+  Search = 'Search',
+  Profile = 'My Profile',
 }
 
 const DEFAULT_USER_PROFILE: UserProfileType = {
@@ -89,109 +85,95 @@ const DEFAULT_GAMIFICATION_PROFILE: GamificationProfile = {
   ],
 };
 
-const initialStories: TravelStoryType[] = [
-  {
-    id: '1',
-    authorName: 'Elena Petrova',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-    title: 'A Week of Wonders in Kyoto',
-    content: 'Kyoto was a dream. From the serene bamboo groves of Arashiyama to the vibrant Fushimi Inari Shrine, every day was a new discovery. The food, the culture, the people... absolutely unforgettable.',
-    images: [
-      'https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?q=80&w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=800&auto=format&fit=crop',
-    ],
-    locationTags: ['Kyoto', 'Japan', 'Culture'],
-    likes: 125,
-    createdAt: '2024-05-10T14:48:00.000Z',
-    comments: [
-      {
-        id: 'c1',
-        authorName: 'Marcus Holloway',
-        authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-        content: 'Looks incredible! Kyoto is on my bucket list.',
-        createdAt: '2024-05-10T15:00:00.000Z',
-      },
-      {
-        id: 'c2',
-        authorName: 'Aisha Khan',
-        authorAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop',
-        content: 'Your photos are stunning! Especially the one from Arashiyama.',
-        createdAt: '2024-05-11T09:30:00.000Z',
-      }
-    ]
-  },
-  {
-    id: '2',
-    authorName: 'Marcus Holloway',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-    title: 'Hiking the Inca Trail to Machu Picchu',
-    content: "The 4-day trek was challenging but immensely rewarding. Waking up to the sunrise over Machu Picchu is a moment I'll cherish forever. The views are just as incredible as everyone says.",
-    images: [
-      'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?q=80&w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1530912585210-791648937612?q=80&w=800&auto=format&fit=crop',
-    ],
-    locationTags: ['Peru', 'Machu Picchu', 'Adventure'],
-    likes: 342,
-    createdAt: '2024-04-22T09:15:00.000Z',
-    comments: [
-        {
-            id: 'c3',
-            authorName: 'Elena Petrova',
-            authorAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-            content: 'Wow, what an achievement! That sunrise view is breathtaking.',
-            createdAt: '2024-04-22T12:00:00.000Z',
-        }
-    ]
-  },
-  {
-    id: '3',
-    authorName: 'Aisha Khan',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop',
-    title: 'Santorini Sunsets and Seaside Charm',
-    content: 'The iconic blue domes and white-washed villages of Santorini are even more stunning in person. Finding hidden spots to watch the sunset over the caldera was the highlight of our trip.',
-    images: [
-      'https://images.unsplash.com/photo-1533105079780-52b9be4ac215?q=80&w=800&auto=format&fit=crop',
-    ],
-    locationTags: ['Santorini', 'Greece', 'Relaxation'],
-    likes: 218,
-    createdAt: '2024-06-01T18:30:00.000Z',
-    comments: [
-       {
-            id: 'c4',
-            authorName: 'Marcus Holloway',
-            authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-            content: 'Santorini is magical. Did you visit Oia?',
-            createdAt: '2024-06-02T10:00:00.000Z',
-        }
-    ]
-  },
+const initialWandergramPosts: WandergramPost[] = [
+    {
+        id: 'wg1',
+        user: { name: 'Elena Petrova', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' },
+        imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760c0337?q=80&w=800&auto=format&fit=crop',
+        caption: 'Paris is always a good idea. 🥐☕️',
+        location: 'Paris, France',
+        likes: 1204,
+        comments: [
+            {
+                id: 'wgc1',
+                user: { name: 'Marcus Holloway', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop' },
+                text: 'Love this shot!',
+                createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+            }
+        ],
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    },
+    {
+        id: 'wg2',
+        user: { name: 'Marcus Holloway', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop' },
+        imageUrl: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?q=80&w=800&auto=format&fit=crop',
+        caption: 'Tokyo nights hit different. 🌃',
+        location: 'Shibuya City, Tokyo',
+        likes: 2543,
+        comments: [],
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    },
+    {
+        id: 'wg3',
+        user: { name: 'Aisha Khan', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop' },
+        imageUrl: 'https://images.unsplash.com/photo-1528702748617-c64d49f918af?q=80&w=800&auto=format&fit=crop',
+        caption: 'Lost in the colorful streets of Chefchaouen.',
+        location: 'Chefchaouen, Morocco',
+        likes: 897,
+        comments: [],
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+    },
 ];
 
+const initialWandergramStories: WandergramStory[] = [
+    { id: 's1', user: { name: 'Elena Petrova', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' }, imageUrl: '', viewed: false },
+    { id: 's2', user: { name: 'Marcus Holloway', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop' }, imageUrl: '', viewed: false },
+    { id: 's3', user: { name: 'Aisha Khan', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop' }, imageUrl: '', viewed: true },
+    { id: 's4', user: { name: 'Ben Carter', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }, imageUrl: '', viewed: true },
+];
+
+const initialWandergramConversations: WandergramConversation[] = [
+    {
+        id: 'convo1',
+        user: { id: 'user_elena', name: 'Elena Petrova', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' },
+        messages: [
+            { id: 'msg1', senderId: 'user_elena', text: 'Hey! Loved your shot from Paris. What camera do you use?', createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+            { id: 'msg2', senderId: 'currentUser', text: 'Thanks so much! I use a Sony A7III.', createdAt: new Date(Date.now() - 4 * 60 * 1000).toISOString() },
+        ],
+    },
+    {
+        id: 'convo2',
+        user: { id: 'user_marcus', name: 'Marcus Holloway', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop' },
+        messages: [
+            { id: 'msg3', senderId: 'user_marcus', text: 'That Tokyo photo is insane!', createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+    },
+];
+
+
 const PRIMARY_TABS = [
-    { name: Tab.Home, icon: 'home' },
-    { name: Tab.FlightTracker, icon: 'send' },
-    { name: Tab.Inspire, icon: 'lightbulb' },
-    { name: Tab.TrendRadar, icon: 'chart-bar' },
-    { name: Tab.Chat, icon: 'chat' },
-    { name: Tab.Planner, icon: 'planner' },
-    { name: Tab.SuperServices, icon: 'apps' },
-    { name: Tab.Coworking, icon: 'briefcase' },
-    { name: Tab.LocalConnections, icon: 'users' },
-    { name: Tab.Communities, icon: 'globe' },
+  { name: Tab.Home, icon: 'home' },
+  { name: Tab.FlightTracker, icon: 'send' },
+  { name: Tab.Inspire, icon: 'lightbulb' },
+  { name: Tab.Chat, icon: 'chat' },
+  { name: Tab.Planner, icon: 'planner' },
+  { name: Tab.SuperServices, icon: 'grid' },
+  { name: Tab.Coworking, icon: 'briefcase' },
+  { name: Tab.LocalConnections, icon: 'users' },
 ];
 
 const MORE_TABS = [
-    { name: Tab.MyTrips, icon: 'bookmark' },
-    { name: Tab.Checklist, icon: 'checklist' },
-    { name: Tab.GroupPlanning, icon: 'clipboard-list' },
-    { name: Tab.Stories, icon: 'stories' },
-    { name: Tab.TravelBuddy, icon: 'users' },
-    { name: Tab.Events, icon: 'calendar' },
-    { name: Tab.Wallet, icon: 'wallet' },
-    { name: Tab.Converter, icon: 'exchange' },
-    { name: Tab.Passport, icon: 'passport' },
-    { name: Tab.Search, icon: 'search' },
-    { name: Tab.Profile, icon: 'user' },
+  { name: Tab.MyTrips, icon: 'bookmark' },
+  { name: Tab.Checklist, icon: 'checklist' },
+  { name: Tab.GroupPlanning, icon: 'clipboard-list' },
+  { name: Tab.Wandergram, icon: 'instagram' },
+  { name: Tab.TravelBuddy, icon: 'users' },
+  { name: Tab.Events, icon: 'calendar' },
+  { name: Tab.Wallet, icon: 'wallet' },
+  { name: Tab.Converter, icon: 'exchange' },
+  { name: Tab.Passport, icon: 'passport' },
+  { name: Tab.Search, icon: 'search' },
+  { name: Tab.Profile, icon: 'user' },
 ];
 
 export default function App() {
@@ -211,24 +193,21 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const [stories, setStories] = useState<TravelStoryType[]>(initialStories);
-  const [isCreateStoryModalOpen, setIsCreateStoryModalOpen] = useState(false);
+  const [wandergramPosts, setWandergramPosts] = useState<WandergramPost[]>(initialWandergramPosts);
+  const [isCreateWandergramPostModalOpen, setIsCreateWandergramPostModalOpen] = useState(false);
+  const [postForAskAi, setPostForAskAi] = useState<WandergramPost | null>(null);
   const [foodToOrder, setFoodToOrder] = useState<Restaurant | null>(null);
   const [rideToBook, setRideToBook] = useState<{ride: RideOption, destination: string} | null>(null);
-  const [generatedMemories, setGeneratedMemories] = useState<TripMemory[]>([]);
   const [hangoutRequest, setHangoutRequest] = useState<{local: LocalProfile, suggestion: HangoutSuggestion} | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [userProfile, setUserProfile] = useState<UserProfileType>(DEFAULT_USER_PROFILE);
+  
+  // Wandergram Chat State
+  const [wandergramConversations, setWandergramConversations] = useState<WandergramConversation[]>(initialWandergramConversations);
+  const [activeWandergramView, setActiveWandergramView] = useState<'feed' | 'chatList' | 'chat'>('feed');
+  const [activeWandergramConversationId, setActiveWandergramConversationId] = useState<string | null>(null);
+  
   const moreMenuRef = useRef<HTMLDivElement>(null);
-
-  const [userProfile, setUserProfile] = useState<UserProfileType>(() => {
-    try {
-      const savedProfile = localStorage.getItem('flyWiseUserProfile');
-      return savedProfile ? { ...DEFAULT_USER_PROFILE, ...JSON.parse(savedProfile) } : DEFAULT_USER_PROFILE;
-    } catch (e) {
-      console.error("Could not parse user profile from localStorage", e);
-      return DEFAULT_USER_PROFILE;
-    }
-  });
 
   useEffect(() => {
     const hasVisited = localStorage.getItem('hasVisitedFlyWiseAI');
@@ -236,28 +215,48 @@ export default function App() {
       setIsOnboardingOpen(true);
     }
     
-    // Load trips from IndexedDB on initial mount
-    const loadTrips = async () => {
+    const initializeApp = async () => {
+      if (xanoService.getToken()) {
+        setIsLoggedIn(true);
         try {
-            const trips = await dbService.getAllTrips();
-            setSavedTrips(trips);
-        } catch (e) {
-            console.error("Could not load trips from DB", e);
-            setError("Could not load saved trips. Some data may be unavailable offline.");
+          const [profile, trips] = await Promise.all([
+            xanoService.getProfile(),
+            xanoService.getTrips()
+          ]);
+          const fullProfile = { ...DEFAULT_USER_PROFILE, ...profile };
+          setUserProfile(fullProfile);
+          setSavedTrips(trips);
+          // Cache data for offline access
+          localStorage.setItem('flyWiseUserProfile', JSON.stringify(fullProfile));
+          const localTrips = await dbService.getAllTrips();
+          await Promise.all(localTrips.map(t => dbService.deleteTrip(t.id)));
+          await Promise.all(trips.map(t => dbService.saveTrip(t)));
+        } catch (error) {
+          console.error("Failed to fetch data from server, loading from cache:", error);
+          setError("Could not connect to server. Displaying cached data.");
+          const trips = await dbService.getAllTrips();
+          setSavedTrips(trips);
+          const cachedProfile = localStorage.getItem('flyWiseUserProfile');
+          if (cachedProfile) {
+            setUserProfile(JSON.parse(cachedProfile));
+          }
         }
+      } else {
+        // Not logged in, load from local DB if any trips exist
+         const trips = await dbService.getAllTrips();
+         setSavedTrips(trips);
+      }
     };
-    loadTrips();
+    initializeApp();
 
-    // Listen for online/offline status changes
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     return () => {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
   
@@ -293,35 +292,63 @@ export default function App() {
   }, []);
 
   const handleSaveTrip = useCallback(async (tripData: Omit<SavedTrip, 'id' | 'createdAt'>) => {
-    const newTrip: SavedTrip = {
-      ...tripData,
-      id: `${Date.now()}-${Math.random()}`,
-      createdAt: new Date().toISOString(),
-    };
-    try {
+    if (!isLoggedIn || isOffline) {
+        setError("You must be online and logged in to save trips.");
+        // Fallback to local save for offline/logged out users
+        console.log("Saving trip locally as fallback.");
+        const newTrip: SavedTrip = { ...tripData, id: `${Date.now()}`, createdAt: new Date().toISOString() };
         await dbService.saveTrip(newTrip);
         setSavedTrips(prev => [newTrip, ...prev]);
         setActiveTab(Tab.MyTrips);
-    } catch (e) {
-        console.error("Failed to save trip to DB", e);
-        setError("Could not save your trip. The database might be unavailable.");
+        return;
     }
-}, []);
+    try {
+        const newTrip = await xanoService.addTrip(tripData);
+        setSavedTrips(prev => [newTrip, ...prev]);
+        await dbService.saveTrip(newTrip); // Cache it
+        setActiveTab(Tab.MyTrips);
+    } catch (e) {
+        console.error("Failed to save trip to server", e);
+        setError("Could not save your trip. The server might be unavailable.");
+    }
+}, [isLoggedIn, isOffline]);
+
 
   const handleDeleteTrip = useCallback(async (tripId: string) => {
-    try {
+    if (!isLoggedIn || isOffline) {
+        setError("You must be online and logged in to delete trips.");
+        // Fallback to local delete
         await dbService.deleteTrip(tripId);
         setSavedTrips(prev => prev.filter(trip => trip.id !== tripId));
-    } catch (e) {
-        console.error("Failed to delete trip from DB", e);
-        setError("Could not delete your trip. The database might be unavailable.");
+        return;
     }
-  }, []);
+    try {
+        await xanoService.deleteTrip(tripId);
+        setSavedTrips(prev => prev.filter(trip => trip.id !== tripId));
+        await dbService.deleteTrip(tripId); // remove from cache
+    } catch (e) {
+        console.error("Failed to delete trip from server", e);
+        setError("Could not delete your trip. The server might be unavailable.");
+    }
+  }, [isLoggedIn, isOffline]);
   
   const handleSaveProfile = useCallback((profile: UserProfileType) => {
-    setUserProfile(profile);
-    localStorage.setItem('flyWiseUserProfile', JSON.stringify(profile));
-  }, []);
+    if (isOffline) {
+        alert("Cannot save profile while offline. Please reconnect.");
+        return;
+    }
+    xanoService.updateProfile(profile)
+      .then(updatedProfile => {
+        const fullProfile = { ...DEFAULT_USER_PROFILE, ...updatedProfile };
+        setUserProfile(fullProfile);
+        localStorage.setItem('flyWiseUserProfile', JSON.stringify(fullProfile));
+        alert("Profile saved successfully!");
+      })
+      .catch(err => {
+        console.error("Failed to save profile:", err);
+        alert("Could not save your profile. The server might be unavailable.");
+      });
+  }, [isOffline]);
 
   const onOpenVipModal = useCallback(() => setIsVipModalOpen(true), []);
 
@@ -336,12 +363,11 @@ export default function App() {
   const handleOrderComplete = useCallback((confirmation: FoodOrderConfirmation | RideBookingConfirmation) => {
       let earnedBadge: { id: string, name: string } | null = null;
       
-      // Using a type guard to differentiate confirmations and check if badge is earned
-      if ('orderId' in confirmation) { // FoodOrderConfirmation
+      if ('orderId' in confirmation) {
           if (!gamificationProfile.earnedBadgeIds.includes('foodie-explorer')) {
               earnedBadge = { id: 'foodie-explorer', name: 'Foodie Explorer' };
           }
-      } else if ('bookingId' in confirmation) { // RideBookingConfirmation
+      } else if ('bookingId' in confirmation) {
           if (!gamificationProfile.earnedBadgeIds.includes('local-rider')) {
               earnedBadge = { id: 'local-rider', name: 'Local Rider' };
           }
@@ -398,19 +424,41 @@ export default function App() {
     setSpaceToBook(null);
   }, [gamificationProfile.earnedBadgeIds]);
 
+  const fetchDataAfterAuth = useCallback(async () => {
+    try {
+        const [profile, trips] = await Promise.all([
+            xanoService.getProfile(),
+            xanoService.getTrips()
+        ]);
+        const fullProfile = { ...DEFAULT_USER_PROFILE, ...profile };
+        setUserProfile(fullProfile);
+        setSavedTrips(trips);
+        localStorage.setItem('flyWiseUserProfile', JSON.stringify(fullProfile));
+        trips.forEach(trip => dbService.saveTrip(trip));
+    } catch (error) {
+        console.error("Failed to fetch user data after login:", error);
+        setError("Could not retrieve your profile and trips. Please try again later.");
+    }
+  }, []);
 
   const handleLoginSuccess = useCallback(() => {
     setIsLoggedIn(true);
     setIsLoginModalOpen(false);
-  }, []);
+    fetchDataAfterAuth();
+  }, [fetchDataAfterAuth]);
 
   const handleSignUpSuccess = useCallback(() => {
     setIsLoggedIn(true);
     setIsSignUpModalOpen(false);
-  }, []);
+    fetchDataAfterAuth();
+  }, [fetchDataAfterAuth]);
   
   const handleLogout = useCallback(() => {
+    xanoService.logout();
     setIsLoggedIn(false);
+    setSavedTrips([]);
+    setUserProfile(DEFAULT_USER_PROFILE);
+    localStorage.removeItem('flyWiseUserProfile');
   }, []);
 
   const openLoginModal = useCallback(() => {
@@ -423,270 +471,228 @@ export default function App() {
     setIsSignUpModalOpen(true);
   }, []);
 
-  const handleCreateStory = useCallback((newStory: TravelStoryType) => {
-    setStories(prev => [newStory, ...prev]);
-    setIsCreateStoryModalOpen(false);
-  }, []);
-  
-  const handleMemoryGenerated = useCallback((memory: TripMemory) => {
-    if (!generatedMemories.some(m => m.tripId === memory.tripId)) {
-        setGeneratedMemories(prev => [...prev, memory]);
-        if (!gamificationProfile.earnedBadgeIds.includes('memory-maker')) {
-            setGamificationProfile(prev => ({
-                ...prev,
-                flyWisePoints: prev.flyWisePoints + 200,
-                earnedBadgeIds: [...prev.earnedBadgeIds, 'memory-maker']
-            }));
-            alert("New Badge Unlocked: Memory Maker! (+200 FlyWise Coins)");
-        }
-    }
-  }, [generatedMemories, gamificationProfile.earnedBadgeIds]);
-
-  const handleHangoutComplete = useCallback(() => {
-    setHangoutRequest(null); // Close the modal
-    let earnedBadge: { id: string, name: string } | null = null;
-    const coinsEarned = 150;
-
-    if (!gamificationProfile.earnedBadgeIds.includes('explorer-buddy')) {
-        earnedBadge = { id: 'explorer-buddy', name: 'Explorer Buddy' };
-    }
-
+  const handleEarnPoints = useCallback((points: number, badgeId?: string) => {
     setGamificationProfile(prev => {
-        const newBadgeIds = earnedBadge ? [...prev.earnedBadgeIds, earnedBadge.id] : prev.earnedBadgeIds;
-        return {
-          ...prev,
-          flyWisePoints: prev.flyWisePoints + coinsEarned,
-          earnedBadgeIds: newBadgeIds,
+        const newBadgeIds = [...prev.earnedBadgeIds];
+        let newBadgeUnlocked = false;
+        if (badgeId && !prev.earnedBadgeIds.includes(badgeId)) {
+            newBadgeIds.push(badgeId);
+            newBadgeUnlocked = true;
+        }
+
+        const newProfile = {
+            ...prev,
+            flyWisePoints: prev.flyWisePoints + points,
+            earnedBadgeIds: newBadgeIds,
         };
+        
+        let alertMessage = `+${points} FlyWise Points!`;
+
+        if (newBadgeUnlocked) {
+            const badge = ALL_BADGES.find(b => b.id === badgeId);
+            alertMessage = `New Badge Unlocked: ${badge?.name || 'New Badge'}!\n\n${alertMessage}`;
+        }
+        
+        alert(alertMessage);
+
+        return newProfile;
     });
+  }, []);
 
-    let alertMessage = `Hangout request sent! You earned ${coinsEarned} FlyWise Coins for connecting with a local.`;
-    if (earnedBadge) {
-        alertMessage += `\n\nNew Badge Unlocked: ${earnedBadge.name}!`;
+  const handleCreateWandergramPost = useCallback((postData: Omit<WandergramPost, 'id' | 'likes' | 'comments' | 'createdAt' | 'user'>) => {
+    const newPost: WandergramPost = {
+        id: `wg${Date.now()}`,
+        user: { name: 'Valued Member', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop'},
+        likes: 0,
+        comments: [],
+        createdAt: new Date().toISOString(),
+        ...postData
+    };
+    setWandergramPosts(prev => [newPost, ...prev]);
+    setIsCreateWandergramPostModalOpen(false);
+    handleEarnPoints(50, 'photographer'); // Example for a new badge
+  }, [handleEarnPoints]);
+  
+  const handleWandergramComment = useCallback((postId: string, commentText: string) => {
+    const newComment: WandergramComment = {
+        id: `wgc${Date.now()}`,
+        user: { name: 'Valued Member', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop' },
+        text: commentText,
+        createdAt: new Date().toISOString(),
+    };
+    
+    setWandergramPosts(prevPosts => 
+        prevPosts.map(post => {
+            if (post.id === postId) {
+                return {
+                    ...post,
+                    comments: [...post.comments, newComment],
+                };
+            }
+            return post;
+        })
+    );
+    handleEarnPoints(15, 'conversation-starter');
+  }, [handleEarnPoints]);
+
+  const handleHangoutRequestComplete = useCallback(() => {
+    alert("Hangout request sent! You earned 100 FlyWise Coins and unlocked the 'Explorer Buddy' badge!");
+    handleEarnPoints(100, 'explorer-buddy');
+    setHangoutRequest(null);
+  }, [handleEarnPoints]);
+
+  // Wandergram Chat Handlers
+  const handleNavigateWandergram = useCallback((view: 'feed' | 'chatList') => {
+    setActiveWandergramView(view);
+    setActiveWandergramConversationId(null);
+  }, []);
+
+  const handleSelectWandergramConversation = useCallback((conversationId: string) => {
+    setActiveWandergramConversationId(conversationId);
+    setActiveWandergramView('chat');
+  }, []);
+
+  const handleSendWandergramMessage = useCallback((conversationId: string, text: string) => {
+    const newMessage: WandergramChatMessage = {
+      id: `msg${Date.now()}`,
+      senderId: 'currentUser',
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    
+    setWandergramConversations(prev => 
+      prev.map(convo => 
+        convo.id === conversationId 
+          ? { ...convo, messages: [...convo.messages, newMessage] }
+          : convo
+      )
+    );
+  }, []);
+
+
+  const renderActiveTab = () => {
+    if (flightToBook) return <FlightBooking flight={flightToBook} onClose={() => setFlightToBook(null)} onBookingComplete={handleBookingComplete} />;
+    if (stayToBook) return <StayBooking stay={stayToBook} onClose={() => setStayToBook(null)} onBookingComplete={handleBookingComplete} />;
+    if (carToBook) return <CarBooking car={carToBook} onClose={() => setCarToBook(null)} onBookingComplete={handleBookingComplete} />;
+    if (spaceToBook) return <CoworkingBooking space={spaceToBook} onClose={() => setSpaceToBook(null)} onBookingComplete={handleCoworkingBookingComplete} />;
+    if (foodToOrder) return <FoodOrderModal restaurant={foodToOrder} onClose={() => setFoodToOrder(null)} onOrderComplete={handleOrderComplete} />;
+    if (rideToBook) return <RideBookingModal ride={rideToBook.ride} destination={rideToBook.destination} onClose={() => setRideToBook(null)} onBookingComplete={handleOrderComplete} />;
+    if (hangoutRequest) return <HangoutRequestModal local={hangoutRequest.local} suggestion={hangoutRequest.suggestion} onClose={() => setHangoutRequest(null)} onHangoutComplete={handleHangoutRequestComplete} />;
+
+    switch (activeTab) {
+      case Tab.Home: return <HomeDashboard userProfile={userProfile} savedTrips={savedTrips} stories={[]} setActiveTab={setActiveTab} />;
+      case Tab.Search:
+        return (
+          <div className="p-4">
+            <SearchBar onSearch={handleSearchResults} onLoading={handleLoading} onError={handleError} userProfile={userProfile} />
+            <div className="mt-4">
+              <ResultsList results={results} isLoading={isLoading} error={error} onBookFlight={handleBookFlight} onBookStay={handleBookStay} onBookCar={handleBookCar} />
+            </div>
+          </div>
+        );
+      case Tab.Chat:
+        return <ChatInterface onSaveTrip={handleSaveTrip} userProfile={userProfile} savedTrips={savedTrips} onBookFlight={handleBookFlight} onBookStay={handleBookStay} onBookCar={handleBookCar} />;
+      case Tab.Planner: return <ItineraryPlanner onSaveTrip={handleSaveTrip} isOffline={isOffline} />;
+      case Tab.MyTrips: return <MyTrips savedTrips={savedTrips} onDeleteTrip={handleDeleteTrip} isOffline={isOffline} />;
+      case Tab.Converter: return <CurrencyConverter />;
+      case Tab.Profile: return <UserProfile profile={userProfile} onSave={handleSaveProfile} />;
+      case Tab.TravelBuddy: return <TravelBuddy userProfile={userProfile} onSaveTrip={handleSaveTrip} savedTrips={savedTrips} isOffline={isOffline} />;
+      case Tab.Events: return <MeetupEvents />;
+      case Tab.GroupPlanning: return <GroupPlanning />;
+      case Tab.Checklist: return <PackingChecklist />;
+      case Tab.Passport: return <SocialPassport profile={gamificationProfile} />;
+      case Tab.Wallet: return <Wallet isLoggedIn={isLoggedIn} onLoginClick={openLoginModal} />;
+      case Tab.LocalConnections: return <HomeShare userProfile={userProfile} onOpenVipModal={onOpenVipModal} onHangoutRequest={(details) => setHangoutRequest(details)} />;
+      case Tab.SuperServices: return <SuperServicesHub userProfile={userProfile} savedTrips={savedTrips} onOrderFood={handleOrderFood} onBookRide={handleBookRide} />;
+      case Tab.Coworking: return <CoworkingHub userProfile={userProfile} onBookSpace={handleBookSpace} />;
+      case Tab.FlightTracker: return <FlightTracker />;
+      case Tab.Inspire: return <DreamWeaver />;
+      case Tab.Wandergram: return <Wandergram 
+        stories={initialWandergramStories} 
+        posts={wandergramPosts}
+        userProfile={userProfile}
+        onOpenCreateModal={() => setIsCreateWandergramPostModalOpen(true)} 
+        onAskAi={setPostForAskAi} 
+        onAddComment={handleWandergramComment}
+        onEarnPoints={handleEarnPoints}
+        conversations={wandergramConversations}
+        activeView={activeWandergramView}
+        activeConversationId={activeWandergramConversationId}
+        onNavigate={handleNavigateWandergram}
+        onSelectConversation={handleSelectWandergramConversation}
+        onSendMessage={handleSendWandergramMessage}
+        />;
+      default: return null;
     }
-    alert(alertMessage);
-
-  }, [gamificationProfile.earnedBadgeIds]);
-
-  const isMoreTabActive = useMemo(() => MORE_TABS.some(tab => tab.name === activeTab), [activeTab]);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-800">
+    <div className="w-full max-w-7xl mx-auto bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl shadow-xl flex flex-col h-full max-h-[95vh]">
       <Header 
-        onOpenVipModal={onOpenVipModal}
+        onOpenVipModal={onOpenVipModal} 
         isLoggedIn={isLoggedIn}
         onLoginClick={openLoginModal}
         onSignUpClick={openSignUpModal}
         onLogoutClick={handleLogout}
         isOffline={isOffline}
       />
-      <main className="max-w-7xl mx-auto px-2 py-4 sm:px-4 md:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-          <div className="border-b border-slate-200 mb-6 print:hidden">
-            <nav className="-mb-px flex items-center justify-between" aria-label="Tabs">
-              <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto custom-scrollbar">
-                {PRIMARY_TABS.map((tab) => (
-                  <button
-                    key={tab.name}
-                    onClick={() => setActiveTab(tab.name)}
-                    className={`${
-                      activeTab === tab.name
-                        ? 'border-blue-500 text-blue-600 bg-blue-50'
-                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                    } group inline-flex items-center py-3 px-3 border-b-2 font-medium text-sm transition-all duration-200 whitespace-nowrap rounded-t-md`}
-                    aria-current={activeTab === tab.name ? 'page' : undefined}
-                  >
-                    <Icon name={tab.icon} className="mr-0 sm:mr-2 h-5 w-5 flex-shrink-0" />
-                    <span className="hidden sm:inline">{tab.name}</span>
-                  </button>
-                ))}
-              </div>
-              
-              <div className="relative flex-shrink-0 ml-2" ref={moreMenuRef}>
-                <button
-                  onClick={() => setIsMoreMenuOpen(prev => !prev)}
-                  className={`${
-                    isMoreTabActive
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                  } group inline-flex items-center py-3 px-3 border-b-2 font-medium text-sm transition-all duration-200 whitespace-nowrap rounded-t-md`}
-                  aria-haspopup="true"
-                  aria-expanded={isMoreMenuOpen}
-                >
-                  <Icon name="dots-horizontal" className="mr-0 sm:mr-2 h-5 w-5" />
-                  <span className="hidden sm:inline">More</span>
-                  <Icon name="chevron-down" className={`ml-1 h-4 w-4 transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isMoreMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10 animate-fade-in">
-                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                      {MORE_TABS.map((tab) => (
-                        <a
-                          href="#"
-                          key={tab.name}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setActiveTab(tab.name);
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className={`${
-                            activeTab === tab.name ? 'bg-blue-50 text-blue-600' : 'text-slate-700'
-                          } group flex items-center px-4 py-2 text-sm hover:bg-slate-100 hover:text-slate-900`}
-                          role="menuitem"
-                        >
-                          <Icon name={tab.icon} className={`mr-3 h-5 w-5 ${activeTab === tab.name ? 'text-blue-500' : 'text-slate-400 group-hover:text-slate-500'}`} />
-                          <span>{tab.name}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </nav>
-          </div>
-          
-          <div key={activeTab} className="animate-fade-in-up">
-            {activeTab === Tab.Home && (
-              <HomeDashboard 
-                userProfile={userProfile} 
-                savedTrips={savedTrips} 
-                stories={stories} 
-                setActiveTab={setActiveTab} 
-              />
-            )}
-            
-            {activeTab === Tab.FlightTracker && (
-              <FlightTracker />
-            )}
-
-            {activeTab === Tab.Inspire && (
-              <DreamWeaver />
-            )}
-
-            {activeTab === Tab.TrendRadar && (
-              <TravelTrendRadar userProfile={userProfile} />
-            )}
-
-            {activeTab === Tab.Coworking && (
-              <CoworkingHub userProfile={userProfile} onBookSpace={handleBookSpace} />
-            )}
-
-            {activeTab === Tab.LocalConnections && (
-              <LocalConnectionsHub userProfile={userProfile} onOpenVipModal={onOpenVipModal} onHangoutRequest={setHangoutRequest}/>
-            )}
-
-            {activeTab === Tab.Chat && (
-              <ChatInterface 
-                onSaveTrip={handleSaveTrip} 
-                userProfile={userProfile} 
-                savedTrips={savedTrips} 
-                onBookFlight={handleBookFlight}
-                onBookStay={handleBookStay}
-                onBookCar={handleBookCar} 
-              />
-            )}
-
-            {activeTab === Tab.Planner && (
-              <ItineraryPlanner onSaveTrip={handleSaveTrip} isOffline={isOffline} />
-            )}
-            
-            {activeTab === Tab.SuperServices && (
-              <SuperServicesHub userProfile={userProfile} savedTrips={savedTrips} onOrderFood={handleOrderFood} onBookRide={handleBookRide} />
-            )}
-
-            {activeTab === Tab.Checklist && (
-              <PackingChecklist />
-            )}
-
-            {activeTab === Tab.TravelBuddy && (
-              <TravelBuddy userProfile={userProfile} onSaveTrip={handleSaveTrip} savedTrips={savedTrips} />
-            )}
-
-            {activeTab === Tab.Stories && (
-              <MemoriesHub
-                stories={stories}
-                onOpenCreateModal={() => setIsCreateStoryModalOpen(true)}
-                savedTrips={savedTrips}
-                generatedMemories={generatedMemories}
-                onMemoryGenerated={handleMemoryGenerated}
-              />
-            )}
-
-            {activeTab === Tab.Communities && (
-              <TravelCommunities />
-            )}
-
-            {activeTab === Tab.Events && (
-              <MeetupEvents />
-            )}
-
-            {activeTab === Tab.GroupPlanning && (
-              <GroupPlanning />
-            )}
-
-            {activeTab === Tab.Passport && (
-              <SocialPassport profile={gamificationProfile} />
-            )}
-            
-            {activeTab === Tab.MyTrips && (
-              <MyTrips savedTrips={savedTrips} onDeleteTrip={handleDeleteTrip} />
-            )}
-
-            {activeTab === Tab.Wallet && (
-              <Wallet isLoggedIn={isLoggedIn} onLoginClick={openLoginModal} />
-            )}
-
-            {activeTab === Tab.Converter && (
-              <CurrencyConverter />
-            )}
-
-            {activeTab === Tab.Profile && (
-              <UserProfile profile={userProfile} onSave={handleSaveProfile} />
-            )}
-
-            {activeTab === Tab.Search && (
-              <div>
-                <SearchBar 
-                  onSearch={handleSearchResults}
-                  onLoading={handleLoading}
-                  onError={handleError}
-                  userProfile={userProfile}
-                />
-                <div className="mt-8">
-                  <ResultsList 
-                    results={results} 
-                    isLoading={isLoading} 
-                    error={error} 
-                    onBookFlight={handleBookFlight} 
-                    onBookStay={handleBookStay}
-                    onBookCar={handleBookCar} 
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-      <footer className="text-center py-6 text-slate-500 text-sm print:hidden">
-        <p>Powered by AI. Your ultimate travel planning companion.</p>
-      </footer>
-      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} onSwitchToSignUp={openSignUpModal} />}
-      {isSignUpModalOpen && <SignUpModal onClose={() => setIsSignUpModalOpen(false)} onSignUpSuccess={handleSignUpSuccess} onSwitchToLogin={openLoginModal} />}
       
-      {flightToBook && <FlightBooking flight={flightToBook} onClose={() => setFlightToBook(null)} onBookingComplete={handleBookingComplete} />}
-      {stayToBook && <StayBooking stay={stayToBook} onClose={() => setStayToBook(null)} onBookingComplete={handleBookingComplete} />}
-      {carToBook && <CarBooking car={carToBook} onClose={() => setCarToBook(null)} onBookingComplete={handleBookingComplete} />}
-      {spaceToBook && <CoworkingBooking space={spaceToBook} onClose={() => setSpaceToBook(null)} onBookingComplete={handleCoworkingBookingComplete} />}
-
-      {foodToOrder && <FoodOrderModal restaurant={foodToOrder} onClose={() => setFoodToOrder(null)} onOrderComplete={handleOrderComplete} />}
-      {rideToBook && <RideBookingModal ride={rideToBook.ride} destination={rideToBook.destination} onClose={() => setRideToBook(null)} onBookingComplete={handleOrderComplete} />}
-      
-      {hangoutRequest && <HangoutRequestModal local={hangoutRequest.local} suggestion={hangoutRequest.suggestion} onClose={() => setHangoutRequest(null)} onHangoutComplete={handleHangoutComplete} />}
-
       {isVipModalOpen && <SubscriptionModal onClose={() => setIsVipModalOpen(false)} />}
       {isOnboardingOpen && <OnboardingModal onClose={handleCloseOnboarding} />}
-      {isCreateStoryModalOpen && <CreateStoryModal onClose={() => setIsCreateStoryModalOpen(false)} onCreateStory={handleCreateStory} />}
+      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} onSwitchToSignUp={openSignUpModal} />}
+      {isSignUpModalOpen && <SignUpModal onClose={() => setIsSignUpModalOpen(false)} onSignUpSuccess={handleSignUpSuccess} onSwitchToLogin={openLoginModal} />}
+      {isCreateWandergramPostModalOpen && <CreateWandergramPostModal onClose={() => setIsCreateWandergramPostModalOpen(false)} onCreatePost={handleCreateWandergramPost} />}
+      {postForAskAi && <AskAiAboutPhotoModal post={postForAskAi} onClose={() => setPostForAskAi(null)} />}
+
+      <nav className="flex-shrink-0 border-b border-slate-200/80 px-4">
+          <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1 overflow-x-auto custom-scrollbar -mb-px">
+                  {PRIMARY_TABS.map(({ name, icon }) => (
+                      <button 
+                        key={name}
+                        onClick={() => setActiveTab(name)}
+                        className={`flex items-center space-x-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 whitespace-nowrap ${activeTab === name ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
+                      >
+                           <Icon name={icon} className="h-5 w-5" />
+                           <span>{name}</span>
+                      </button>
+                  ))}
+              </div>
+              <div className="relative" ref={moreMenuRef}>
+                  <button 
+                    onClick={() => setIsMoreMenuOpen(prev => !prev)}
+                    className={`flex items-center space-x-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 ${MORE_TABS.some(t => t.name === activeTab) ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
+                  >
+                      <span>More</span>
+                      <Icon name="chevron-down" className={`h-4 w-4 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                   {isMoreMenuOpen && (
+                      <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200/80 p-2 z-30 animate-fade-in-up">
+                          <div className="space-y-1">
+                            {MORE_TABS.map(({name, icon}) => (
+                                <button
+                                    key={name}
+                                    onClick={() => { setActiveTab(name); setIsMoreMenuOpen(false); }}
+                                    className={`w-full flex items-center space-x-3 px-3 py-2 text-sm font-medium rounded-md transition-colors text-left ${
+                                        activeTab === name
+                                            ? 'bg-blue-50 text-blue-600'
+                                            : 'text-slate-700 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    <Icon name={icon} className={`h-5 w-5 flex-shrink-0 ${activeTab === name ? 'text-blue-600' : 'text-slate-500'}`} />
+                                    <span>{name}</span>
+                                </button>
+                            ))}
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </div>
+      </nav>
+
+      <main className="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar">
+        {renderActiveTab()}
+      </main>
     </div>
   );
 }

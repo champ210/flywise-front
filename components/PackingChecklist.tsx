@@ -69,8 +69,8 @@ const CheckboxIcon: React.FC<{ checked: boolean }> = ({ checked }) => {
             </div>
         );
     }
-    // Match the solid square from the screenshot for the unchecked state
-    return <div className="w-5 h-5 bg-slate-700 rounded flex-shrink-0"></div>;
+    // An empty square for the unchecked state
+    return <div className="w-5 h-5 border-2 border-slate-400 rounded flex-shrink-0 bg-white"></div>;
 };
 
 

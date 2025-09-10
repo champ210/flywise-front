@@ -1,10 +1,12 @@
 
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UserProfile, CoworkingSpace } from '../types';
 import { getCoworkingSpaces } from '../services/geminiService';
 import { Icon } from './Icon';
 import LoadingSpinner from './LoadingSpinner';
 import CoworkingSpaceCard from './CoworkingSpaceCard';
+import ProviderDashboard from './ProviderDashboard';
 
 interface CoworkingHubProps {
   userProfile: UserProfile;
@@ -12,10 +14,25 @@ interface CoworkingHubProps {
 }
 
 const CoworkingHub: React.FC<CoworkingHubProps> = ({ userProfile, onBookSpace }) => {
+  const [mode, setMode] = useState<'finding' | 'providing'>('finding');
   const [location, setLocation] = useState('');
   const [spaces, setSpaces] = useState<CoworkingSpace[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -38,15 +55,41 @@ const CoworkingHub: React.FC<CoworkingHubProps> = ({ userProfile, onBookSpace })
     }
   }, [location, userProfile]);
 
+  if (mode === 'providing') {
+    return <ProviderDashboard onSwitchToFinding={() => setMode('finding')} />;
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-2 sm:p-4 animate-fade-in-up">
-      <div className="text-center">
-        <Icon name="briefcase" className="h-12 w-12 text-blue-600 mx-auto" />
-        <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-800">Global Coworking Spaces</h2>
-        <p className="mt-2 text-md text-slate-600 max-w-2xl mx-auto">
-          Discover and book your next workspace, anywhere in the world. Powered by AI, accessed with your FlyWise Card.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-4 gap-4">
+        <div className="text-center sm:text-left">
+            <Icon name="briefcase" className="h-12 w-12 text-blue-600 mx-auto sm:mx-0" />
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-800">Global Coworking Spaces</h2>
+            <p className="mt-2 text-md text-slate-600 max-w-2xl">
+            Discover your next workspace, anywhere in the world.
+            </p>
+        </div>
+        <div ref={dropdownRef} className="relative flex-shrink-0 w-full sm:w-auto">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50"
+            aria-haspopup="true"
+            aria-expanded={isDropdownOpen}
+          >
+            {mode === 'finding' ? 'Finding Spaces' : 'Provider Dashboard'}
+            <Icon name="chevron-down" className={`-mr-1 ml-2 h-5 w-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {isDropdownOpen && (
+            <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 animate-fade-in">
+              <div className="py-1" role="menu" aria-orientation="vertical">
+                <a href="#" onClick={(e) => { e.preventDefault(); setMode('finding'); setIsDropdownOpen(false); }} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">Find Spaces</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); setMode('providing'); setIsDropdownOpen(false); }} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">List Your Workspace</a>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
 
       <form onSubmit={handleSearch} className="mt-8 max-w-lg mx-auto">
         <div className="flex items-center gap-2">

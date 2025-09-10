@@ -149,7 +149,7 @@ const ItineraryPlanner: React.FC<ItineraryPlannerProps> = ({ onSaveTrip, isOffli
               )}
               {plan && !isLoading && (
                 <>
-                  <ItineraryDisplay plan={plan} onSaveTrip={onSaveTrip} />
+                  <ItineraryDisplay plan={plan} onSaveTrip={onSaveTrip} isOffline={isOffline} />
 
                   {plan.totalBudget && (
                     <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200">

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useEffect, useRef } from 'react';
 import { MapMarker, Waypoint } from '../types';
 
@@ -9,9 +10,10 @@ declare const L: any; // Using Leaflet from CDN
 interface MapViewProps {
   markers: MapMarker[];
   waypoints?: Waypoint[];
+  onMapReady?: (map: any) => void;
 }
 
-const MapView: React.FC<MapViewProps> = ({ markers, waypoints }) => {
+const MapView: React.FC<MapViewProps> = ({ markers, waypoints, onMapReady }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const layerGroupRef = useRef<any>(null);
@@ -29,6 +31,9 @@ const MapView: React.FC<MapViewProps> = ({ markers, waypoints }) => {
         maxZoom: 18,
       }).addTo(mapInstanceRef.current);
       layerGroupRef.current = L.layerGroup().addTo(mapInstanceRef.current);
+      if (onMapReady) {
+        onMapReady(mapInstanceRef.current);
+      }
     }
     
     // Clear previous layers
@@ -77,7 +82,7 @@ const MapView: React.FC<MapViewProps> = ({ markers, waypoints }) => {
         mapInstanceRef.current.fitBounds(markerBounds.pad(0.2));
     }
     
-  }, [markers, waypoints]);
+  }, [markers, waypoints, onMapReady]);
 
   if (markers.length === 0) {
     return (

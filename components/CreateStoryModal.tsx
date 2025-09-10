@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { TravelStory } from '../types';
 import { Icon } from './Icon';
@@ -7,6 +8,7 @@ import LoadingSpinner from './LoadingSpinner';
 interface CreateStoryModalProps {
   onClose: () => void;
   onCreateStory: (story: TravelStory) => void;
+  onEarnPoints: (points: number, badgeId?: string) => void;
 }
 
 const fileToDataUrl = (file: File): Promise<string> => {
@@ -19,7 +21,7 @@ const fileToDataUrl = (file: File): Promise<string> => {
 };
 
 
-const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ onClose, onCreateStory }) => {
+const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ onClose, onCreateStory, onEarnPoints }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [tags, setTags] = useState('');
@@ -61,7 +63,6 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ onClose, onCreateSt
         setTimeout(() => {
             onCreateStory(newStory);
             setIsSubmitting(false);
-            onClose();
         }, 1000);
 
     }, [title, content, tags, images, onCreateStory, onClose]);

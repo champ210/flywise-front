@@ -16,16 +16,16 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, onBookFlight, isSelecte
   return (
     <div 
       onClick={() => onSelectFlight(flight)}
-      className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border-2 cursor-pointer relative ${isSelected ? 'border-blue-500' : 'border-slate-200 hover:border-slate-300'}`}
+      className={`bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border-2 cursor-pointer relative ${isSelected ? 'border-blue-500 shadow-lg' : 'border-white hover:border-slate-300'}`}
     >
        {isSelected && (
-        <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full h-6 w-6 flex items-center justify-center z-10">
+        <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full h-6 w-6 flex items-center justify-center z-10 shadow-md">
             <Icon name="check" className="h-4 w-4" />
         </div>
       )}
       {flight.rankingReason && (
-        <div className="bg-green-100 text-green-800 text-xs font-semibold px-4 py-2 flex items-center border-b border-green-200">
-            <Icon name="sparkles" className="h-4 w-4 mr-2 text-green-600" />
+        <div className="bg-emerald-50 text-emerald-800 text-xs font-semibold px-4 py-2 flex items-center border-b border-emerald-200">
+            <Icon name="sparkles" className="h-4 w-4 mr-2 text-emerald-600" />
             AI Recommendation: {flight.rankingReason}
         </div>
       )}

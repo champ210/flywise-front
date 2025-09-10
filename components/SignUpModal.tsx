@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon';
 import LoadingSpinner from './LoadingSpinner';
+import * as xanoService from '../services/xanoService';
 
 interface SignUpModalProps {
   onClose: () => void;
@@ -15,7 +16,7 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onSignUpSuccess, onS
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name) {
       setErrorMessage('Please fill in all fields.');
@@ -24,10 +25,13 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ onClose, onSignUpSuccess, onS
     }
     setStatus('loading');
     setErrorMessage('');
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await xanoService.signup(name, email, password);
       onSignUpSuccess();
-    }, 1500);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Sign up failed. Please try again.');
+      setStatus('error');
+    }
   };
 
   return (

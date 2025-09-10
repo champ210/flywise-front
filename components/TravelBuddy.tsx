@@ -12,9 +12,10 @@ interface TravelBuddyProps {
   userProfile: UserProfile;
   onSaveTrip: (tripData: Omit<SavedTrip, 'id' | 'createdAt'>) => void;
   savedTrips: SavedTrip[];
+  isOffline: boolean;
 }
 
-const TravelBuddy: React.FC<TravelBuddyProps> = ({ userProfile, onSaveTrip, savedTrips }) => {
+const TravelBuddy: React.FC<TravelBuddyProps> = ({ userProfile, onSaveTrip, savedTrips, isOffline }) => {
   const [preferences, setPreferences] = useState<TravelBuddyPreferences>({
     travelStyle: 'Adventurous',
     budget: 'Mid-range',
@@ -381,7 +382,7 @@ const TravelBuddy: React.FC<TravelBuddyProps> = ({ userProfile, onSaveTrip, save
           )}
 
           <div className="mt-8">
-            {jointPlan && !isLoading && <ItineraryDisplay plan={jointPlan} onSaveTrip={onSaveTrip} />}
+            {jointPlan && !isLoading && <ItineraryDisplay plan={jointPlan} onSaveTrip={onSaveTrip} isOffline={isOffline} />}
           </div>
           
           {jointPlan && buddyProfile && !isLoading && (

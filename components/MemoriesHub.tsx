@@ -13,9 +13,14 @@ interface MemoriesHubProps {
   savedTrips: SavedTrip[];
   generatedMemories: TripMemory[];
   onMemoryGenerated: (memory: TripMemory) => void;
+  onOpenReelModal: (trip: SavedTrip & { data: ItineraryPlan }) => void;
+  onUpdateStory: (story: TravelStory) => void;
+// FIX: Added onEarnPoints to the props interface to be passed down to StoryCard.
+  onEarnPoints: (points: number, badgeId?: string) => void;
 }
 
-const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, savedTrips, generatedMemories, onMemoryGenerated }) => {
+// FIX: Added onEarnPoints to the component's destructured props.
+const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, savedTrips, generatedMemories, onMemoryGenerated, onOpenReelModal, onUpdateStory, onEarnPoints }) => {
   const [activeTab, setActiveTab] = useState<'stories' | 'memories'>('stories');
   const [selectedMemory, setSelectedMemory] = useState<TripMemory | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,7 +96,8 @@ const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, s
         {activeTab === 'stories' ? (
              <div className="space-y-8">
                 {stories.map(story => (
-                <StoryCard key={story.id} story={story} />
+// FIX: Passed the onEarnPoints prop to StoryCard as it is required.
+                <StoryCard key={story.id} story={story} onUpdateStory={onUpdateStory} onEarnPoints={onEarnPoints} />
                 ))}
             </div>
         ) : (
@@ -100,6 +106,7 @@ const MemoriesHub: React.FC<MemoriesHubProps> = ({ stories, onOpenCreateModal, s
                 generatedMemories={generatedMemories}
                 onGenerate={handleGenerateMemory}
                 onView={handleViewMemory}
+                onOpenReelModal={onOpenReelModal}
             />
         )}
       </div>

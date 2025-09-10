@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon';
 import LoadingSpinner from './LoadingSpinner';
+import * as xanoService from '../services/xanoService';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -14,7 +15,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess, onSwit
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setErrorMessage('Please fill in both fields.');
@@ -23,10 +24,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess, onSwit
     }
     setStatus('loading');
     setErrorMessage('');
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await xanoService.login(email, password);
       onLoginSuccess();
-    }, 1500);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
+      setStatus('error');
+    }
   };
 
   return (

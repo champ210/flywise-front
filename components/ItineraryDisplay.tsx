@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { ItineraryPlan, SavedTrip, MapMarker, WeatherForecast } from '../types';
 import { Icon } from './Icon';
 import MapView from './MapView';
@@ -12,9 +13,42 @@ declare const jspdf: any;
 interface ItineraryDisplayProps {
   plan: ItineraryPlan;
   onSaveTrip: (tripData: Omit<SavedTrip, 'id' | 'createdAt'>) => void;
+  isOffline: boolean;
 }
 
-const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ plan, onSaveTrip }) => {
+// Helper functions for calculating tile URLs
+function long2tile(lon: number, zoom: number) {
+  return Math.floor(((lon + 180) / 360) * Math.pow(2, zoom));
+}
+function lat2tile(lat: number, zoom: number) {
+  return Math.floor(
+    ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) *
+      Math.pow(2, zoom)
+  );
+}
+function getTileUrlsForBounds(bounds: any, minZoom: number, maxZoom: number) {
+  const urls = [];
+  const northWest = bounds.getNorthWest();
+  const southEast = bounds.getSouthEast();
+
+  for (let z = minZoom; z <= maxZoom; z++) {
+    const startX = long2tile(northWest.lng, z);
+    const startY = lat2tile(northWest.lat, z);
+    const endX = long2tile(southEast.lng, z);
+    const endY = lat2tile(southEast.lat, z);
+
+    for (let x = startX; x <= endX; x++) {
+      for (let y = startY; y <= endY; y++) {
+        const subdomain = ['a', 'b', 'c'][Math.floor(Math.random() * 3)];
+        urls.push(`https://${subdomain}.tile.openstreetmap.org/${z}/${x}/${y}.png`);
+      }
+    }
+  }
+  return urls;
+}
+
+
+const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ plan, onSaveTrip, isOffline }) => {
   const [view, setView] = useState<'list' | 'map'>('list');
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [isMapLoading, setIsMapLoading] = useState<boolean>(false);
@@ -22,6 +56,9 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ plan, onSaveTrip })
   const [isWeatherLoading, setIsWeatherLoading] = useState<boolean>(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
+  const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
     // Reset state for new plan
@@ -30,6 +67,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ plan, onSaveTrip })
     setWeather(null);
     setIsWeatherLoading(true);
     setWeatherError(null);
+    setDownloadStatus('idle');
     
     const fetchWeather = async () => {
       try {
@@ -71,6 +109,45 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ plan, onSaveTrip })
       data: plan
     });
   };
+
+  const handleDownloadMap = async () => {
+    if (!mapRef.current) return;
+    setDownloadStatus('downloading');
+    setDownloadProgress({ current: 0, total: 0 });
+
+    try {
+      const bounds = mapRef.current.getBounds();
+      const zoom = mapRef.current.getZoom();
+      const urls = getTileUrlsForBounds(bounds, zoom, Math.min(zoom + 1, 16)); // Cap max zoom
+      
+      if (urls.length > 500) {
+        if (!window.confirm(`This will download approximately ${urls.length} map tiles. This may take a while and use significant data/storage. Continue?`)) {
+            setDownloadStatus('idle');
+            return;
+        }
+      }
+
+      setDownloadProgress({ current: 0, total: urls.length });
+
+      let downloadedCount = 0;
+      const promises = urls.map(url =>
+        fetch(url).then(res => {
+          if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+          downloadedCount++;
+          setDownloadProgress({ current: downloadedCount, total: urls.length });
+          return res;
+        })
+      );
+
+      await Promise.all(promises);
+      setDownloadStatus('success');
+      setTimeout(() => setDownloadStatus('idle'), 5000); // Reset after 5s
+    } catch (error) {
+      console.error("Map download failed:", error);
+      setDownloadStatus('error');
+    }
+  };
+
 
   const handleDownloadPdf = () => {
     setIsDownloading(true);
@@ -222,6 +299,46 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ plan, onSaveTrip })
           Map View
         </button>
       </div>
+      
+      {view === 'map' && (
+        <div className="text-center -mt-2 mb-4 print:hidden">
+            {!isOffline && (
+                <div className="inline-block mt-4">
+                    {downloadStatus === 'idle' && (
+                    <button onClick={handleDownloadMap} className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50">
+                        <Icon name="download" className="h-5 w-5 mr-2" />
+                        Download Map for Offline Use
+                    </button>
+                    )}
+                    {downloadStatus === 'downloading' && (
+                    <div className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-slate-700 bg-slate-100">
+                        <LoadingSpinner />
+                        <span className="ml-2">Downloading... ({downloadProgress.current}/{downloadProgress.total})</span>
+                    </div>
+                    )}
+                    {downloadStatus === 'success' && (
+                    <div className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-green-700 bg-green-100">
+                        <Icon name="check-circle" className="h-5 w-5 mr-2" />
+                        Map downloaded successfully!
+                    </div>
+                    )}
+                    {downloadStatus === 'error' && (
+                    <div className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-red-700 bg-red-100">
+                        <Icon name="error" className="h-5 w-5 mr-2" />
+                        Download failed.
+                        <button onClick={handleDownloadMap} className="ml-2 font-semibold underline">Retry</button>
+                    </div>
+                    )}
+                </div>
+            )}
+            {isOffline && (
+                <div className="p-2 mt-4 text-center text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md">
+                    You are offline. Map functionality may be limited to downloaded areas.
+                </div>
+            )}
+        </div>
+      )}
+
 
       {view === 'list' ? (
         <>
@@ -309,7 +426,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ plan, onSaveTrip })
               <p className="mt-4 text-slate-600">Plotting your trip on the map...</p>
             </div>
           ) : (
-            <MapView markers={markers} />
+            <MapView markers={markers} onMapReady={(mapInstance) => { mapRef.current = mapInstance; }} />
           )}
         </div>
       )}

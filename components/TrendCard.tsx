@@ -9,8 +9,8 @@ interface TrendCardProps {
 
 const getSocialIcon = (platform: SocialProof['platform']) => {
     switch(platform) {
-        case 'TikTok': return 'compass'; // Re-using an icon
-        case 'Instagram': return 'image';
+        case 'TikTok': return 'tiktok';
+        case 'Instagram': return 'instagram';
         case 'Booking': return 'hotel';
         case 'FlyWise':
         default: return 'logo';

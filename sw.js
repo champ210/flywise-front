@@ -1,15 +1,15 @@
 // sw.js
-const CACHE_NAME = 'flywise-ai-cache-v1';
+const APP_CACHE_NAME = 'flywise-ai-app-cache-v1';
+const MAP_TILES_CACHE_NAME = 'flywise-ai-map-tiles-cache-v1';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
-  // The main script and css will be caught by the fetch handler.
 ];
 
 // On install, cache the app shell
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(APP_CACHE_NAME)
       .then(cache => cache.addAll(APP_SHELL_URLS))
       .then(() => self.skipWaiting())
   );
@@ -17,7 +17,7 @@ self.addEventListener('install', event => {
 
 // On activate, clean up old caches
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [APP_CACHE_NAME, MAP_TILES_CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -31,31 +31,49 @@ self.addEventListener('activate', event => {
   );
 });
 
-// On fetch, use a stale-while-revalidate strategy for most requests
 self.addEventListener('fetch', event => {
-  // We only want to cache GET requests.
   if (event.request.method !== 'GET') {
     return;
   }
 
-  event.respondWith(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.match(event.request).then(response => {
-        // Return cached response if available, and fetch an update in the background.
-        const fetchPromise = fetch(event.request).then(networkResponse => {
-          // If the request is successful, update the cache.
-          // This will cache CDN assets as well.
-          if (networkResponse.ok) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        }).catch(err => {
-            // Network fetch failed, which is expected offline. The cached response (if it exists) has already been returned.
-        });
+  const url = new URL(event.request.url);
 
-        // Return the cached response immediately if it exists, otherwise wait for the network response.
-        return response || fetchPromise;
-      });
-    })
-  );
+  // Cache-first strategy for map tiles
+  if (url.hostname.endsWith('tile.openstreetmap.org')) {
+    event.respondWith(
+      caches.open(MAP_TILES_CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(response => {
+          if (response) {
+            return response; // Found in cache
+          }
+          // Not in cache, fetch and cache
+          return fetch(event.request).then(networkResponse => {
+            if (networkResponse.ok) {
+                cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          });
+        });
+      })
+    );
+  } else {
+    // Stale-while-revalidate for everything else
+    event.respondWith(
+      caches.open(APP_CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(response => {
+          const fetchPromise = fetch(event.request).then(networkResponse => {
+            if (networkResponse.ok) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {
+            // This catch is important for offline fallback
+            // If fetch fails, and we had a cached response, it's already been returned.
+            // If fetch fails and there was no cached response, the promise rejects, and the user sees the browser's offline page.
+          });
+          return response || fetchPromise;
+        });
+      })
+    );
+  }
 });

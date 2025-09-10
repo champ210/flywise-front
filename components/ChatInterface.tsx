@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { getApiParamsFromChat, getMockResultsFromParams, getAlternativeSuggestions, getRealTimeSuggestions } from '../services/geminiService';
-import { ChatMessage, ApiParams, SavedTrip, UserProfile, Flight, Stay, Car, AlternativeSuggestion, ItineraryPlan, RealTimeSuggestion } from '../types';
+import { getApiParamsFromChat, getAlternativeSuggestions, getRealTimeSuggestions, generateSearchSummary, getItinerarySnippet } from '../services/geminiService';
+import * as xanoService from '../services/xanoService';
+import { ChatMessage, ApiParams, SavedTrip, UserProfile, Flight, Stay, Car, AlternativeSuggestion, ItineraryPlan, RealTimeSuggestion, SearchResult } from '../types';
 import ResultsList from './ResultsList';
 import { Icon } from './Icon';
 import LoadingOverlay from './LoadingOverlay';
@@ -53,7 +54,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSaveTrip, userProfile, 
     setLoadingMessage("Analyzing your travel request...");
 
     try {
-      // Step 1: Get structured API parameters from the user's query, now with preferences.
+      // Step 1: Get structured API parameters from the user's query.
       const params: ApiParams = await getApiParamsFromChat(currentMessages, userProfile, savedTrips);
       
       setLoadingMessage("Searching for the best deals...");
@@ -62,26 +63,42 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSaveTrip, userProfile, 
         sender: 'ai',
         text: params.analyzedQuery || "Okay, I've analyzed your request. Now, let's find some great deals for you.",
       };
-      // Use functional state update to ensure we have the latest messages
       setMessages((prev) => [...prev, analysisMessage]);
 
 
-      // Step 2: Use the structured parameters and preferences to get mock results.
-      const resultsData = await getMockResultsFromParams(params, userProfile);
+      // Step 2: Call Xano APIs based on the structured parameters.
+      const searchPromises: Promise<SearchResult[]>[] = [];
+      if (params.flight_search_params) {
+        searchPromises.push(xanoService.searchFlights(params.flight_search_params));
+      }
+      if (params.hotel_search_params) {
+        searchPromises.push(xanoService.searchStays(params.hotel_search_params));
+      }
+      if (params.car_search_params) {
+        searchPromises.push(xanoService.searchCars(params.car_search_params));
+      }
+      
+      const searchResultsArrays = await Promise.all(searchPromises);
+      const combinedResults = searchResultsArrays.flat();
+
+      // Step 3: Generate a summary and optional itinerary snippet.
+      const summaryText = await generateSearchSummary(combinedResults);
+      const itinerarySnippet = params.itinerary_request 
+          ? await getItinerarySnippet(params.itinerary_request) 
+          : undefined;
 
       const resultsMessage: ChatMessage = {
         id: (Date.now() + 2).toString(),
         sender: 'ai',
-        text: resultsData.summary || "Here's what I found for you:",
-        results: [...(resultsData.flights || []), ...(resultsData.stays || []), ...(resultsData.cars || [])],
+        text: summaryText,
+        results: combinedResults,
         analyzedQuery: params.analyzedQuery,
-        itinerarySnippet: resultsData.itinerary_snippet,
+        itinerarySnippet: itinerarySnippet,
       };
-       // Use functional state update
       setMessages((prev) => [...prev, resultsMessage]);
       
       // If the search returned flights or stays, ask about alternatives.
-      if (resultsData.flights?.length || resultsData.stays?.length) {
+      if (combinedResults.some(r => r.type === 'flight' || r.type === 'stay')) {
         const suggestionPromptMessage: ChatMessage = {
           id: (Date.now() + 3).toString(),
           sender: 'ai',
@@ -98,7 +115,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSaveTrip, userProfile, 
          sender: 'ai',
          text: `I'm sorry, but I encountered an issue processing your request. Please try rephrasing it. Error: ${errorMessage}`
       };
-       // Use functional state update
       setMessages((prev) => [...prev, aiErrorMessage]);
     } finally {
       setIsLoading(false);

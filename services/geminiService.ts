@@ -1,45 +1,103 @@
 
 
 
-
-
-
 import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Implement missing Gemini service functions and related types to fix import errors.
-import { Flight, Stay, Car, ApiParams, ItineraryPlan, Checklist, DailyPlan, MapMarker, TravelInsuranceQuote, NearbyAttraction, ChatMessage, UserProfile, SavedTrip, SearchResult, WeatherForecast, ItinerarySnippet, TravelBuddyPreferences, TravelBuddyProfile, AlternativeSuggestion, LocalVibe, GroundingSource, VibeSearchResult, DestinationSuggestion, RealTimeSuggestion, GamificationProfile, AIVoyageMission, TravelTrend, SuperServiceData, TripMemory, SocialPostSuggestion, LocalProfile, HangoutSuggestion, CoworkingSpace, Badge, BudgetOptimizationSuggestion, AIHomeSuggestion, FlightStatus } from '../types';
+// FIX: Changed import from TravelStory to WandergramPost to match the type of data being passed from the SocialFeed component.
+// FIX: Add TravelTrend type to imports
+import { Flight, Stay, Car, ApiParams, ItineraryPlan, Checklist, DailyPlan, MapMarker, TravelInsuranceQuote, NearbyAttraction, ChatMessage, UserProfile, SavedTrip, SearchResult, WeatherForecast, ItinerarySnippet, TravelBuddyPreferences, TravelBuddyProfile, AlternativeSuggestion, LocalVibe, GroundingSource, VibeSearchResult, DestinationSuggestion, RealTimeSuggestion, GamificationProfile, AIVoyageMission, SuperServiceData, TripMemory, SocialPostSuggestion, LocalProfile, HangoutSuggestion, CoworkingSpace, Badge, BudgetOptimizationSuggestion, AIHomeSuggestion, FlightStatus, SocialReel, AIDiscoveryData, WandergramPost, TravelTrend } from '../types';
 
 // The GoogleGenAI constructor will now throw an error if API_key is not set, which is the correct behavior.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * A centralized utility to handle Gemini API errors and provide user-friendly messages.
+ * A helper function to add retry logic with exponential backoff for API calls.
+ * This is specifically for handling 429 "RESOURCE_EXHAUSTED" errors from the Gemini API.
+ * @param apiCall The function that makes the API call.
+ * @param maxRetries The maximum number of times to retry.
+ * @param initialDelay The initial delay in milliseconds.
+ * @returns The result of the API call.
+ */
+const withRetry = async <T>(apiCall: () => Promise<T>, maxRetries = 2, initialDelay = 1000): Promise<T> => {
+    let retries = 0;
+    while (true) {
+        try {
+            return await apiCall();
+        } catch (error: unknown) {
+            // Check if it's a rate limit error based on Gemini SDK's error structure or standard Error messages.
+            const isRateLimitError = (
+                (typeof error === 'object' && error !== null && 'error' in error && ((error as any).error.status === 'RESOURCE_EXHAUSTED' || (error as any).error.code === 429)) ||
+                (error instanceof Error && (error.message.includes("429") || error.message.includes("RESOURCE_EXHAUSTED")))
+            );
+
+            if (isRateLimitError && retries < maxRetries) {
+                retries++;
+                const delay = initialDelay * Math.pow(2, retries - 1); // e.g., 1000ms, 2000ms
+                console.warn(`Rate limit exceeded. Retrying in ${delay}ms... (Attempt ${retries}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                // For non-rate-limit errors or if max retries are exceeded, re-throw the original error to be handled by handleApiError.
+                throw error;
+            }
+        }
+    }
+};
+
+
+/**
+ * A centralized utility to handle API errors and provide user-friendly messages.
+ * This is designed to work with both the Gemini SDK and standard fetch API calls (like to a Xano backend).
  * @param error The error object caught from the API call.
  * @param defaultMessage A default error message to use as a fallback.
  * @returns An Error object with a user-friendly message.
  */
-const handleGeminiError = (error: unknown, defaultMessage: string): Error => {
-    console.error("Gemini API Error:", error);
+const handleApiError = (error: unknown, defaultMessage: string): Error => {
+    console.error("API/Service Error:", error);
+
+    // Handle network errors from fetch (e.g., offline, CORS, DNS issues)
+    // This is crucial for a good offline experience and for handling real backend calls to services like Xano.
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+        return new Error("A network error occurred. Please check your internet connection and try again.");
+    }
     
     // The Gemini SDK can throw a non-standard error object on API failure.
-    // Check for the specific structure of a rate-limit error.
+    // This block also handles potential error structures from a Xano backend.
     if (typeof error === 'object' && error !== null && 'error' in error) {
         const nestedError = (error as any).error;
-        if (typeof nestedError === 'object' && nestedError !== null &&
-            (nestedError.code === 429 || nestedError.status === 'RESOURCE_EXHAUSTED')) {
-            return new Error("You've exceeded the request limit for today. Please check your API plan and billing details, then try again tomorrow.");
+        if (typeof nestedError === 'object' && nestedError !== null) {
+            switch(nestedError.status || nestedError.code) {
+                case 'INVALID_ARGUMENT':
+                case 400:
+                    return new Error("The request was invalid. Please check the data you provided and try again.");
+                case 'PERMISSION_DENIED':
+                case 403:
+                    return new Error("You do not have permission for this action. Please check your API key's permissions.");
+                case 'RESOURCE_EXHAUSTED':
+                case 429:
+                    return new Error("You've made too many requests. Please wait a moment before trying again.");
+                case 'INTERNAL':
+                case 500:
+                    return new Error("A server error occurred. We've been notified and are looking into it. Please try again later.");
+                default:
+                    // Fall through for other specific errors
+                    break;
+            }
+            if (nestedError.message?.includes("API key not valid")) {
+                 return new Error("Your API key is invalid or not configured correctly. Please check your setup.");
+            }
         }
     }
 
     // Fallback to checking the message of a standard Error object
     if (error instanceof Error) {
         if (error.message.includes("429") || error.message.includes("RESOURCE_EXHAUSTED")) {
-            return new Error("You've exceeded the request limit for today. Please check your API plan and billing details, then try again tomorrow.");
+            return new Error("You've exceeded the request limit for today. Please try again tomorrow.");
         }
         if (error.message.includes("API key not valid")) {
              return new Error("Your API key is invalid or not configured correctly. Please check your setup.");
         }
     }
     
+    // Return a generic default message if no specific case was matched.
     return new Error(defaultMessage);
 };
 
@@ -98,151 +156,25 @@ const searchParamsSchema = {
     required: ['analyzedQuery']
 };
 
-// Schema to generate mock flight and stay data.
-const mockResultsSchema = {
+// Schema for itinerary snippet.
+const itinerarySnippetSchema = {
     type: Type.OBJECT,
     properties: {
-        summary: {
-            type: Type.STRING,
-            description: "A friendly, one-sentence summary of the deals found. e.g., 'I've found several flights and highly-rated hotels for your trip!'"
-        },
-        flights: {
+        destination: { type: Type.STRING },
+        suggestions: {
             type: Type.ARRAY,
-            description: "An array of 8-12 fictional flight options.",
+            description: "An array of 2-4 diverse activity suggestions.",
             items: {
                 type: Type.OBJECT,
                 properties: {
-                    type: { type: Type.STRING, description: "Should always be 'flight'" },
-                    airline: { type: Type.STRING },
-                    flightNumber: { type: Type.STRING },
-                    departureAirport: { type: Type.STRING },
-                    arrivalAirport: { type: Type.STRING },
-                    departureTime: { type: Type.STRING, description: "e.g., '08:30 AM'" },
-                    arrivalTime: { type: Type.STRING, description: "e.g., '05:45 PM'" },
-                    duration: { type: Type.STRING },
-                    price: { type: Type.NUMBER },
-                    stops: { type: Type.INTEGER },
-                    provider: { type: Type.STRING, description: "Simulate a real-world data provider, e.g., 'Kiwi', 'Skyscanner', 'Travelpayouts'."},
-                    pricePrediction: {
-                        type: Type.OBJECT,
-                        description: "An AI-driven prediction on whether the price is likely to rise or fall.",
-                        properties: {
-                            recommendation: { type: Type.STRING, enum: ['Wait', 'Buy Now'], description: "Recommendation to the user." },
-                            reason: { type: Type.STRING, description: "A brief, one-sentence explanation for the recommendation." }
-                        }
-                    },
-                    negotiationTip: {
-                        type: Type.STRING,
-                        description: "A short, actionable tip for the user on how to get a better deal or save money on this flight. e.g., 'Booking on a Tuesday often yields lower prices.' or 'Check for deals on round-trip bookings.'"
-                    },
-                    affiliateLink: {
-                        type: Type.STRING,
-                        description: "A realistic but fictional booking link, formatted like 'https://flywise.ai/deals/f/[random_id]'."
-                    },
-                    rankingScore: { type: Type.NUMBER, description: "A score from 0-100 indicating how well this result matches the user's inferred criteria. Only for top ranked items." },
-                    rankingReason: { type: Type.STRING, description: "A short, one-sentence explanation for why this item is highly ranked. Only for top ranked items." },
+                    name: { type: Type.STRING, description: "Name of the activity, landmark, or restaurant." },
+                    description: { type: Type.STRING, description: "A compelling, one-sentence description of the suggestion."}
                 },
-                required: ["type", "airline", "flightNumber", "departureAirport", "arrivalAirport", "departureTime", "arrivalTime", "duration", "price", "stops", "provider", "affiliateLink"]
+                required: ["name", "description"]
             }
-        },
-        stays: {
-            type: Type.ARRAY,
-            description: "An array of 8-12 fictional hotel/stay options.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, description: "Should always be 'stay'" },
-                    name: { type: Type.STRING },
-                    stayType: { type: Type.STRING, enum: ['Hotel', 'Apartment', 'Guesthouse', 'Villa'] },
-                    location: { type: Type.STRING },
-                    pricePerNight: { type: Type.NUMBER },
-                    rating: { type: Type.NUMBER, description: "A rating from 1 to 5, can include decimals." },
-                    amenities: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    imageUrl: { type: Type.STRING, description: "A URL to a relevant stock photo of a hotel or city." },
-                    numberOfNights: { type: Type.INTEGER, description: "The total number of nights for the booking, inferred from the user's query. Default to 1 if not specified." },
-                    provider: { type: Type.STRING, description: "Simulate a real-world data provider, e.g., 'Booking.com', 'Agoda', 'Expedia'."},
-                    negotiationTip: {
-                        type: Type.STRING,
-                        description: "A short, actionable tip for the user on how to negotiate or get a better deal on this stay. e.g., 'Booking mid-week can be up to 20% cheaper.' or 'Ask for a corner room for more space at the same price.'"
-                    },
-                    reviews: {
-                        type: Type.ARRAY,
-                        description: "An array of 2-3 fictional user reviews for the stay.",
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                user: { type: Type.STRING, description: "A fictional user name, e.g., 'Jane D.'" },
-                                rating: { type: Type.NUMBER, description: "A rating from 1 to 5." },
-                                comment: { type: Type.STRING, description: "A short, one or two-sentence review comment." }
-                            },
-                            required: ["user", "rating", "comment"]
-                        }
-                    },
-                    affiliateLink: {
-                        type: Type.STRING,
-                        description: "A realistic but fictional booking link, formatted like 'https://flywise.ai/deals/s/[random_id]'."
-                    },
-                    rankingScore: { type: Type.NUMBER, description: "A score from 0-100 indicating how well this result matches the user's inferred criteria. Only for top ranked items." },
-                    rankingReason: { type: Type.STRING, description: "A short, one-sentence explanation for why this item is highly ranked. Only for top ranked items." },
-                },
-                required: ["type", "name", "stayType", "location", "pricePerNight", "rating", "amenities", "imageUrl", "numberOfNights", "reviews", "provider", "affiliateLink"]
-            }
-        },
-        cars: {
-            type: Type.ARRAY,
-            description: "An array of 5-8 fictional car rental options.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, description: "Should always be 'car'" },
-                    make: { type: Type.STRING },
-                    model: { type: Type.STRING },
-                    carType: { type: Type.STRING, enum: ['Sedan', 'SUV', 'Luxury', 'Van', 'Electric'] },
-                    company: { type: Type.STRING },
-                    location: { type: Type.STRING },
-                    pricePerDay: { type: Type.NUMBER },
-                    rating: { type: Type.NUMBER, description: "A rating from 1 to 5, can include decimals." },
-                    passengers: { type: Type.INTEGER },
-                    fuelType: { type: Type.STRING, enum: ['Gasoline', 'Diesel', 'Electric', 'Hybrid'] },
-                    imageUrl: { type: Type.STRING, description: "A URL to a relevant stock photo of a car." },
-                    provider: { type: Type.STRING, description: "Simulate a real-world data provider, e.g., 'Hertz', 'RentalCars.com', 'Avis'."},
-                    recommendation: { type: Type.STRING, description: "A short, helpful AI recommendation, e.g., 'Best for city driving' or 'Great for families'."},
-                    negotiationTip: {
-                        type: Type.STRING,
-                        description: "A short, actionable tip for the user on how to negotiate or save money on this car rental. e.g., 'Ask about weekly rates for potential discounts.' or 'Prepaying for fuel is often more expensive.'"
-                    },
-                    numberOfDays: { type: Type.INTEGER, description: "The total number of days for the rental, inferred from the user's query. Default to 1 if not specified." },
-                    affiliateLink: {
-                        type: Type.STRING,
-                        description: "A realistic but fictional booking link, formatted like 'https://flywise.ai/deals/c/[random_id]'."
-                    },
-                    rankingScore: { type: Type.NUMBER, description: "A score from 0-100 indicating how well this result matches the user's inferred criteria. Only for top ranked items." },
-                    rankingReason: { type: Type.STRING, description: "A short, one-sentence explanation for why this item is highly ranked. Only for top ranked items." },
-                },
-                required: ["type", "make", "model", "carType", "company", "location", "pricePerDay", "rating", "passengers", "fuelType", "imageUrl", "numberOfDays", "provider", "affiliateLink"]
-            }
-        },
-        itinerary_snippet: {
-            type: Type.OBJECT,
-            description: "A small itinerary snippet with 2-4 activity suggestions. ONLY generate this if an 'itinerary_request' was part of the input parameters.",
-            properties: {
-                destination: { type: Type.STRING },
-                suggestions: {
-                    type: Type.ARRAY,
-                    description: "An array of 2-4 diverse activity suggestions.",
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            name: { type: Type.STRING, description: "Name of the activity, landmark, or restaurant." },
-                            description: { type: Type.STRING, description: "A compelling, one-sentence description of the suggestion."}
-                        },
-                        required: ["name", "description"]
-                    }
-                }
-            },
-            required: ["destination", "suggestions"]
-        },
-    }
+        }
+    },
+    required: ["destination", "suggestions"]
 };
 
 // Schema for generating a travel itinerary.
@@ -605,43 +537,6 @@ const voyageMissionsSchema = {
     required: ["missions"]
 };
 
-// Schema for Travel Trend Radar
-const travelTrendSchema = {
-    type: Type.OBJECT,
-    properties: {
-        trends: {
-            type: Type.ARRAY,
-            description: "An array of 5-8 personalized, trending travel destinations.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    id: { type: Type.STRING, description: "A unique ID for the trend." },
-                    destination: { type: Type.STRING, description: "The name of the trending destination (City, Country)." },
-                    image: { type: Type.STRING, description: "A URL to a stunning, relevant, and license-free photo of the destination." },
-                    trendScore: { type: Type.NUMBER, description: "A score from 0-100 indicating the current popularity and momentum of the trend." },
-                    monthlyGrowth: { type: Type.NUMBER, description: "The percentage growth in interest or bookings over the last month." },
-                    category: { type: Type.STRING, enum: ['Adventure', 'City Break', 'Relaxation', 'Cultural', 'Hidden Gem'] },
-                    socialProof: {
-                        type: Type.ARRAY,
-                        description: "An array of 2-3 data points showing why this destination is trending.",
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                platform: { type: Type.STRING, enum: ['TikTok', 'Instagram', 'Booking', 'FlyWise'] },
-                                value: { type: Type.STRING, description: "A short, impactful metric, e.g., '1.5M Views', '+120% Increase in Bookings'." }
-                            },
-                            required: ["platform", "value"]
-                        }
-                    },
-                    personalizationReason: { type: Type.STRING, description: "A concise, one-sentence explanation of why this trend is a good match for the user, explicitly referencing their profile." }
-                },
-                required: ["id", "destination", "image", "trendScore", "monthlyGrowth", "category", "socialProof", "personalizationReason"]
-            }
-        }
-    },
-    required: ["trends"]
-};
-
 const superServiceDataSchema = {
     type: Type.OBJECT,
     properties: {
@@ -851,11 +746,34 @@ const socialPostSuggestionSchema = {
         },
         hashtags: {
             type: Type.STRING,
-            description: "A string of 5-7 relevant hashtags, separated by spaces, e.g., '#travel #adventure #kyoto #japan #travelgram'."
+            description: "A string of 5-7 relevant hashtags, separated by spaces, e.g., '#travel #kyoto #japan #travelgram'."
         }
     },
     required: ["caption", "hashtags"]
 };
+
+const socialReelSchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: { type: Type.STRING, description: "A short, catchy, and engaging title for the social media reel (max 8 words)." },
+        musicSuggestion: { type: Type.STRING, description: "A suggestion for a background music track or genre that fits the vibe of the images and trip, e.g., 'Upbeat indie pop like 'Good Days' by SZA' or 'Cinematic orchestral score'." },
+        sceneTexts: {
+            type: Type.ARRAY,
+            description: "An array of short, punchy text overlays, one for each image provided. The array must have the same number of strings as the number of images in the prompt.",
+            items: { type: Type.STRING, description: "Text overlay for one scene (max 10 words)." }
+        },
+        socialPost: {
+            type: Type.OBJECT,
+            properties: {
+                caption: { type: Type.STRING, description: "A short, engaging caption for the social media post, summarizing the trip. It should be written in a personal, first-person tone. Use emojis where appropriate." },
+                hashtags: { type: Type.STRING, description: "A string of 5-7 relevant hashtags, separated by spaces, e.g., '#travel #adventure #kyoto #japan #travelgram'." }
+            },
+            required: ["caption", "hashtags"]
+        }
+    },
+    required: ["title", "musicSuggestion", "sceneTexts", "socialPost"]
+};
+
 
 const coworkingSpaceSchema = {
     type: Type.OBJECT,
@@ -912,7 +830,6 @@ const coworkingSpaceSchema = {
     required: ["spaces"]
 };
 
-// FIX: Add schemas for missing functions.
 // Schema for budget optimizations.
 const budgetOptimizationSchema = {
     type: Type.OBJECT,
@@ -1040,6 +957,96 @@ const flightStatusSchema = {
   required: ["flightNumber", "airline", "departure", "arrival", "status", "aircraft", "progressPercent", "aiSummary", "waypoints"]
 };
 
+const storySummarySchema = {
+    type: Type.OBJECT,
+    properties: {
+        summary: {
+            type: Type.STRING,
+            description: "A catchy, one-sentence summary for a social media feed post. Include emojis. Example: 'An unforgettable week-long cultural immersion in Kyoto, Japan 🏯🍣'."
+        },
+        estimatedCost: {
+            type: Type.NUMBER,
+            description: "A realistic estimated total cost for one person for this trip, in USD. Base it on the description and common travel costs for the location."
+        },
+        tags: {
+            type: Type.ARRAY,
+            description: "An array of 3-5 relevant tags for the trip. Examples: 'budget-travel', 'luxury', 'adventure', 'foodie', 'cultural-immersion', 'solo-travel'.",
+            items: {
+                type: Type.STRING
+            }
+        }
+    },
+    required: ["summary", "estimatedCost", "tags"]
+};
+
+// Schema for AI Discovery Layer
+const aiDiscoverySchema = {
+    type: Type.OBJECT,
+    properties: {
+        trendingDestinations: {
+            type: Type.ARRAY,
+            description: "An array of 3-4 trending travel destinations based on engagement and recency. For each, provide a compelling reason and pick a representative image URL from one of the posts.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    destination: { type: Type.STRING, description: "The name of the destination, e.g., 'Kyoto, Japan'." },
+                    image: { type: Type.STRING, description: "The URL of a high-quality image from one of the stories about this destination." },
+                    reason: { type: Type.STRING, description: "A short, catchy reason why this destination is trending." }
+                },
+                required: ["destination", "image", "reason"]
+            }
+        },
+        hiddenGems: {
+            type: Type.ARRAY,
+            description: "An array of 2-3 story IDs for 'hidden gems' - posts about less common destinations that have high engagement.",
+            items: { type: Type.STRING }
+        },
+        recommendations: {
+            type: Type.ARRAY,
+            description: "An array of 2-3 story IDs for posts that are a great personal match for the user, based on their profile.",
+            items: { type: Type.STRING }
+        }
+    },
+    required: ["trendingDestinations", "hiddenGems", "recommendations"]
+};
+
+// FIX: Add schema for Travel Trends
+// Schema for Travel Trend Radar
+const travelTrendsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        trends: {
+            type: Type.ARRAY,
+            description: "An array of 5-8 fictional but realistic and diverse travel trends.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    id: { type: Type.STRING },
+                    destination: { type: Type.STRING },
+                    image: { type: Type.STRING, description: "URL to a stunning, license-free photo." },
+                    category: { type: Type.STRING, enum: ['Adventure', 'City Break', 'Relaxation', 'Cultural', 'Hidden Gem'] },
+                    trendScore: { type: Type.NUMBER, description: "A score from 0-100 indicating current popularity." },
+                    monthlyGrowth: { type: Type.NUMBER, description: "Percentage growth in interest over the last month." },
+                    socialProof: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                platform: { type: Type.STRING, enum: ['TikTok', 'Instagram', 'Booking', 'FlyWise'] },
+                                value: { type: Type.STRING, description: "e.g., '2.1M views', '8.9/10 rating', 'Trending Topic'" }
+                            },
+                            required: ["platform", "value"]
+                        }
+                    },
+                    personalizationReason: { type: Type.STRING, description: "A short, one-sentence reason why this trend is a good match for the user's profile." }
+                },
+                required: ["id", "destination", "image", "category", "trendScore", "monthlyGrowth", "socialProof", "personalizationReason"]
+            }
+        }
+    },
+    required: ["trends"]
+};
+
 /**
  * Parses a user's natural language query to extract structured API parameters.
  * @param chatHistory The user's conversation history.
@@ -1049,401 +1056,311 @@ const flightStatusSchema = {
  */
 export const getApiParamsFromChat = async (chatHistory: ChatMessage[], profile: UserProfile, savedTrips: SavedTrip[]): Promise<ApiParams> => {
     try {
-        const lastMessage = chatHistory[chatHistory.length - 1];
-        
-        let contentParts: any[] = [];
+        return await withRetry(async () => {
+            const lastMessage = chatHistory[chatHistory.length - 1];
+            
+            let contentParts: any[] = [];
 
-        const formattedHistory = chatHistory
-            .map(msg => {
-                let content = `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.text}`;
-                if (msg.imageData) {
-                  content += " [User provided an image]";
-                }
-                // Add context from search results to the history
-                if (msg.sender === 'ai' && msg.results && msg.results.length > 0) {
-                    const resultsSummary = msg.results.slice(0, 3).map(r => {
-                        if (r.type === 'flight') return `Flight ${r.airline} ${r.flightNumber} to ${r.arrivalAirport} for $${r.price}`;
-                        if (r.type === 'stay') return `Stay at ${r.name} (${r.rating} stars) for $${r.pricePerNight}/night`;
-                        if (r.type === 'car') return `Car ${r.make} ${r.model} for $${r.pricePerDay}/day`;
-                    }).join(', ');
-                    content += `\n[Presented search results: ${resultsSummary}]`;
-                }
-                return content;
-            })
-            .join('\n\n');
+            const formattedHistory = chatHistory
+                .map(msg => {
+                    let content = `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.text}`;
+                    if (msg.imageData) {
+                    content += " [User provided an image]";
+                    }
+                    // Add context from search results to the history
+                    if (msg.sender === 'ai' && msg.results && msg.results.length > 0) {
+                        const resultsSummary = msg.results.slice(0, 3).map(r => {
+                            if (r.type === 'flight') return `Flight ${r.airline} ${r.flightNumber} to ${r.arrivalAirport} for $${r.price}`;
+                            if (r.type === 'stay') return `Stay at ${r.name} (${r.rating} stars) for $${r.pricePerNight}/night`;
+                            if (r.type === 'car') return `Car ${r.make} ${r.model} for $${r.pricePerDay}/day`;
+                        }).join(', ');
+                        content += `\n[Presented search results: ${resultsSummary}]`;
+                    }
+                    return content;
+                })
+                .join('\n\n');
 
-        const preferencesString = `
-User Profile Preferences (These are default filters. The user's latest message can override them.):
-- Preferred Airlines: ${profile.preferredAirlines || 'Any'}
-- Minimum Hotel Stars: ${profile.minHotelStars > 0 ? `${profile.minHotelStars}` : 'Any'}
-- Preferred Car Types: ${profile.preferredCarTypes.length > 0 ? profile.preferredCarTypes.join(', ') : 'Any'}
-- Favorite Destinations: ${profile.favoriteDestinations.length > 0 ? profile.favoriteDestinations.join(', ') : 'None'}
-- Budget Constraints: Max flight price ${profile.budget.flightMaxPrice ? `$${profile.budget.flightMaxPrice}`: 'N/A'}, Max hotel price ${profile.budget.hotelMaxPrice ? `$${profile.budget.hotelMaxPrice}/night`: 'N/A'}, Max car price ${profile.budget.carMaxPrice ? `$${profile.budget.carMaxPrice}/day`: 'N/A'}.
-`;
-        
-        const savedTripsString = `
-User's Saved Trips (for context, if user says 'near my Paris trip'):
-${savedTrips.length > 0 ? savedTrips.slice(0, 5).map(trip => `- ${trip.name} (type: ${trip.type})`).join('\n') : 'None'}
-`;
+            const preferencesString = `
+    User Profile Preferences (These are default filters. The user's latest message can override them.):
+    - Preferred Airlines: ${profile.preferredAirlines || 'Any'}
+    - Minimum Hotel Stars: ${profile.minHotelStars > 0 ? `${profile.minHotelStars}` : 'Any'}
+    - Preferred Car Types: ${profile.preferredCarTypes.length > 0 ? profile.preferredCarTypes.join(', ') : 'Any'}
+    - Favorite Destinations: ${profile.favoriteDestinations.length > 0 ? profile.favoriteDestinations.join(', ') : 'None'}
+    - Budget Constraints: Max flight price ${profile.budget.flightMaxPrice ? `$${profile.budget.flightMaxPrice}`: 'N/A'}, Max hotel price ${profile.budget.hotelMaxPrice ? `$${profile.budget.hotelMaxPrice}/night`: 'N/A'}, Max car price ${profile.budget.carMaxPrice ? `$${profile.budget.carMaxPrice}/day`: 'N/A'}.
+    `;
+            
+            const savedTripsString = `
+    User's Saved Trips (for context, if user says 'near my Paris trip'):
+    ${savedTrips.length > 0 ? savedTrips.slice(0, 5).map(trip => `- ${trip.name} (type: ${trip.type})`).join('\n') : 'None'}
+    `;
 
-        const imagePrompt = lastMessage.imageData 
-            ? `An image has been provided. First, identify the location, landmark, or key features in the image. Then, use this visual context combined with the user's text prompt to determine the search parameters. For example, if the image is of the Eiffel Tower and the user says "find flights here", the destination is Paris.`
-            : '';
+            const imagePrompt = lastMessage.imageData 
+                ? `An image has been provided. First, identify the location, landmark, or key features in the image. Then, use this visual context combined with the user's text prompt to determine the search parameters. For example, if the image is of the Eiffel Tower and the user says "find flights here", the destination is Paris.`
+                : '';
 
-        const prompt = `You are a sophisticated AI travel concierge. Your primary task is to analyze a conversation and extract structured search parameters for flights, hotels, or cars.
-${imagePrompt}
+            const prompt = `You are a sophisticated AI travel concierge. Your primary task is to analyze a conversation and extract structured search parameters for flights, hotels, or cars.
+    ${imagePrompt}
 
-**MULTI-TASKING CAPABILITIES:**
-- Your primary goal is to extract structured search parameters for flights, hotels, and cars.
-- ADDITIONALLY, if the user ALSO asks for activity suggestions, an itinerary, or "things to do", you MUST populate the 'itinerary_request' object.
-- The 'destination' for the itinerary request should be inferred from the flight or hotel search.
-- Do NOT populate 'itinerary_request' if the user only asks for flights, hotels, or cars.
+    **MULTI-TASKING CAPABILITIES:**
+    - Your primary goal is to extract structured search parameters for flights, hotels, and cars.
+    - ADDITIONALLY, if the user ALSO asks for activity suggestions, an itinerary, or "things to do", you MUST populate the 'itinerary_request' object.
+    - The 'destination' for the itinerary request should be inferred from the flight or hotel search.
+    - Do NOT populate 'itinerary_request' if the user only asks for flights, hotels, or cars.
 
-**CONTEXT IS KING:**
-- **Full Conversation History:** Maintain context from the ENTIRE conversation. The user's latest message is most important, but context from earlier messages (like a previously mentioned destination or presented search results) is absolutely crucial for follow-up questions. For example, if the AI presented flights and the user says 'find hotels there', 'there' refers to the destination of the flights.
-- **Date Awareness:** Today's date is ${new Date().toISOString().split('T')[0]}. Interpret relative dates like 'tomorrow' or 'next week' accordingly.
+    **CONTEXT IS KING:**
+    - **Full Conversation History:** Maintain context from the ENTIRE conversation. The user's latest message is most important, but context from earlier messages (like a previously mentioned destination or presented search results) is absolutely crucial for follow-up questions. For example, if the AI presented flights and the user says 'find hotels there', 'there' refers to the destination of the flights.
+    - **Date Awareness:** Today's date is ${new Date().toISOString().split('T')[0]}. Interpret relative dates like 'tomorrow' or 'next week' accordingly.
 
-**CRITICAL INSTRUCTIONS FOR APPLYING USER PREFERENCES:**
-You MUST use the provided User Profile Preferences as default filters for the search parameters.
-1.  **Apply Defaults:** If the user's query is vague (e.g., "find me a hotel in Paris"), you MUST apply their saved preferences. For instance, set the 'stars' and 'max_price_per_night' parameters according to their profile.
-2.  **User Overrides:** The user's latest message ALWAYS takes priority. If their message contradicts a profile setting (e.g., profile says 4-star hotels, but they ask for "a cheap 2-star hotel"), you MUST use the parameters from their message for this specific search.
-3.  **Airlines & Car Types:** Do not populate flight airline preferences into the search parameters. For car rentals, only populate the 'car_type' parameter if the user explicitly asks for a specific type in their message (e.g., "rent an SUV"). Do NOT use the user's saved 'Preferred Car Types' from their profile to populate this parameter.
+    **CRITICAL INSTRUCTIONS FOR APPLYING USER PREFERENCES:**
+    You MUST use the provided User Profile Preferences as default filters for the search parameters.
+    1.  **Apply Defaults:** If the user's query is vague (e.g., "find me a hotel in Paris"), you MUST apply their saved preferences. For instance, set the 'stars' and 'max_price_per_night' parameters according to their profile.
+    2.  **User Overrides:** The user's latest message ALWAYS takes priority. If their message contradicts a profile setting (e.g., profile says 4-star hotels, but they ask for "a cheap 2-star hotel"), you MUST use the parameters from their message for this specific search.
+    3.  **Airlines & Car Types:** Do not populate flight airline preferences into the search parameters. For car rentals, only populate the 'car_type' parameter if the user explicitly asks for a specific type in their message (e.g., "rent an SUV"). Do NOT use the user's saved 'Preferred Car Types' from their profile to populate this parameter.
 
-${preferencesString}
+    ${preferencesString}
 
-${savedTripsString}
+    ${savedTripsString}
 
-Conversation History to Analyze:
-${formattedHistory}`;
+    Conversation History to Analyze:
+    ${formattedHistory}`;
 
-        contentParts.push({ text: prompt });
-        if (lastMessage.imageData) {
-             contentParts.push({
-                inlineData: {
-                    mimeType: lastMessage.imageData.mimeType,
-                    data: lastMessage.imageData.base64,
+            contentParts.push({ text: prompt });
+            if (lastMessage.imageData) {
+                contentParts.push({
+                    inlineData: {
+                        mimeType: lastMessage.imageData.mimeType,
+                        data: lastMessage.imageData.base64,
+                    },
+                });
+            }
+
+
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: { parts: contentParts },
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: searchParamsSchema,
                 },
             });
-        }
 
-
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: { parts: contentParts },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: searchParamsSchema,
-            },
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return parsed as ApiParams;
         });
-
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed as ApiParams;
     } catch (error) {
-        throw handleGeminiError(error, "Could not understand your request. Please try rephrasing it.");
+        throw handleApiError(error, "Could not understand your request. Please try rephrasing it.");
     }
 };
 
 /**
- * Generates mock travel data based on structured API parameters.
- * @param params The ApiParams object from getApiParamsFromChat.
- * @param profile The user's saved travel preferences.
- * @returns A promise that resolves to an object containing mock flights, stays, and a summary.
+ * Generates a friendly, one-sentence summary of the search results.
+ * @param results The array of search results from the backend.
+ * @returns A promise that resolves to a summary string.
  */
-export const getMockResultsFromParams = async (params: ApiParams, profile: UserProfile): Promise<{ summary: string; flights?: Flight[]; stays?: Stay[]; cars?: Car[]; itinerary_snippet?: ItinerarySnippet }> => {
+// FIX: Exporting all missing functions to resolve import errors.
+export const generateSearchSummary = async (results: SearchResult[]): Promise<string> => {
+    if (results.length === 0) {
+        return "I couldn't find any results for your search. Would you like to try different criteria?";
+    }
+    const prompt = `Based on the following search results, generate a friendly, one-sentence summary. Mention the number of flights, hotels, or cars found. Results: ${JSON.stringify(results.slice(0, 5))}`;
+
     try {
-        const preferencesString = `
-**User Preferences (Mandatory Rules for Generating Results):**
-- **Preferred Airlines:** If the user's profile lists preferred airlines (${profile.preferredAirlines || 'None are listed'}), you must generate several flight options from these airlines, if a flight search was requested.
-- **Minimum Hotel Stars:** All generated hotel options MUST have a star rating of ${profile.minHotelStars > 0 ? `${profile.minHotelStars} or higher` : 'any rating'}. This is a strict filter. If search parameters also specified a star rating, the higher of the two values must be used.
-- **Preferred Car Types:** If the user has preferred car types (${profile.preferredCarTypes.length > 0 ? profile.preferredCarTypes.join(', ') : 'None are listed'}), ensure several of the generated options match these types.
-- **Budget:** All generated options MUST be cheaper than the user's budget constraints: Max flight price ${profile.budget.flightMaxPrice ? `$${profile.budget.flightMaxPrice}`: 'N/A'}, Max hotel price ${profile.budget.hotelMaxPrice ? `$${profile.budget.hotelMaxPrice}/night`: 'N/A'}, Max car price ${profile.budget.carMaxPrice ? `$${profile.budget.carMaxPrice}/day`: 'N/A'}. This is a strict filter.
-`;
-
-        const prompt = `You are a data generation and AI ranking engine for a travel app. Your task is to generate a list of fictional, yet highly realistic, travel deals based on structured search parameters.
-
-**Search Parameters:** ${JSON.stringify(params)}
-
-**Data Simulation Requirements:**
-- **Provider Simulation:** For each generated item (flight, stay, car), you MUST include a 'provider' field. This simulates data coming from different real-world APIs.
-  - For flights, use providers like 'Kiwi', 'Skyscanner', 'Travelpayouts', 'Google Flights'.
-  - For stays, use providers like 'Booking.com', 'Agoda', 'Expedia', 'Hotels.com'.
-  - For cars, use providers like 'Hertz', 'RentalCars.com', 'Avis', 'Enterprise'.
-- **Realistic Links:** For each generated item, you **MUST** create a realistic but fictional booking affiliate link. The \`affiliateLink\` field is mandatory. The link should follow a pattern like 'https://flywise.ai/deals/[type]/[random_id]', where [type] is 'f' for flight, 's' for stay, and 'c' for car.
-
-**AI Ranking Layer (CRITICAL):**
-1.  **Infer Criterion:** First, analyze the user's query and preferences to infer the most important ranking criterion. This could be 'best value' (a balance of price and quality), 'shortest duration' (for flights), 'luxury' (high rating and price), or 'eco-friendly'. Default to 'best value' if unclear.
-2.  **Rank and Score:** After generating the list of results, re-rank them based on the inferred criterion.
-3.  **Add Reason:** For the top 3-5 results that best match the criterion, you MUST add a 'rankingReason' (e.g., "Best value for a direct flight.", "Top luxury hotel with excellent reviews.") and a 'rankingScore' (from 80-100). For other results, omit these fields.
-
-**ITINERARY SNIPPET GENERATION:**
-- If the search parameters include an 'itinerary_request' object, you MUST generate a concise 'itinerary_snippet' with 2-4 relevant and exciting activity suggestions for the specified destination.
-- If there is NO 'itinerary_request', you MUST NOT generate an 'itinerary_snippet'. The field should be omitted from the JSON response.
-
-**CRITICAL INSTRUCTIONS FOR GENERATING RESULTS:**
-You MUST strictly adhere to the user's preferences below when creating the fictional results. These are not suggestions; they are mandatory rules for filtering and prioritizing the output. If the search parameters from the user's query conflict with their saved profile, the search parameters take precedence.
-
-${preferencesString}
-
-Generate results for all search types present in the search parameters, and an itinerary snippet if requested.
-`;
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: mockResultsSchema,
-            },
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+            });
+            return response.text;
         });
-        
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed as { summary: string; flights?: Flight[]; stays?: Stay[]; cars?: Car[]; itinerary_snippet?: ItinerarySnippet };
     } catch (error) {
-        throw handleGeminiError(error, "Could not fetch travel deals. The AI service may be temporarily unavailable.");
+        throw handleApiError(error, "I'm having trouble summarizing the results right now.");
     }
 };
 
-/**
- * Generates alternative destination suggestions based on a conversation history.
- * @param chatHistory The user's conversation history.
- * @param userProfile The user's saved travel preferences.
- * @returns A promise that resolves to an array of AlternativeSuggestion objects.
- */
-export const getAlternativeSuggestions = async (chatHistory: ChatMessage[], userProfile: UserProfile): Promise<AlternativeSuggestion[]> => {
+export const getItinerarySnippet = async (params: { destination?: string, interests?: string }): Promise<ItinerarySnippet> => {
+    const prompt = `Generate 2-4 diverse activity suggestions for a trip to ${params.destination} with interests in ${params.interests}.`;
     try {
-        const formattedHistory = chatHistory
-            .map(msg => `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.text}`)
-            .join('\n\n');
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: itinerarySnippetSchema,
+                },
+            });
 
-        const preferencesString = `
-User Profile Preferences (Consider these when suggesting alternatives):
-- Favorite Destinations: ${userProfile.favoriteDestinations.length > 0 ? userProfile.favoriteDestinations.join(', ') : 'None'}
-- Budget Constraints: Max flight price ${userProfile.budget.flightMaxPrice ? `$${userProfile.budget.flightMaxPrice}`: 'N/A'}, Max hotel price ${userProfile.budget.hotelMaxPrice ? `$${userProfile.budget.hotelMaxPrice}/night`: 'N/A'}.
-`;
-        const prompt = `You are an AI travel expert specializing in finding creative and value-driven alternative destinations.
-Based on the full conversation history, identify the user's most recent trip search (destination, dates, etc.).
-Your task is to suggest 1-3 alternative destinations that are similar in vibe but might offer better value, fewer crowds, or a unique experience.
-
-**CRITICAL INSTRUCTIONS:**
-1.  **Analyze the Last Search:** Determine the core request from the conversation. What was the destination? What were they looking for (e.g., beach vacation, city break, adventure)?
-2.  **Suggest Smart Alternatives:** If the user searched for a major hub (like LAX, Paris, Rome), suggest nearby secondary airports (Burbank instead of LAX) or different but similar cities (e.g., suggest Bologna instead of Florence for food lovers).
-3.  **Provide Justification:** For each suggestion, you MUST provide a compelling 'reason', an 'estimatedCostSaving', and an 'estimatedTimeDifference' if applicable.
-4.  **Consider User Profile:** Look at the user's preferences to tailor suggestions. If they like specific destinations, maybe suggest something similar.
-
-${preferencesString}
-
-Conversation History:
-${formattedHistory}
-
-Generate the alternative suggestions now.
-`;
-        
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: alternativeSuggestionsSchema,
-            },
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as ItinerarySnippet;
         });
-
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed.suggestions as AlternativeSuggestion[];
     } catch (error) {
-        throw handleGeminiError(error, "Could not generate alternative suggestions at this time.");
+        throw handleApiError(error, "Could not generate itinerary suggestions.");
     }
 };
 
+export const getAlternativeSuggestions = async (chatHistory: ChatMessage[], profile: UserProfile): Promise<AlternativeSuggestion[]> => {
+    const lastUserMessage = chatHistory.filter(m => m.sender === 'user').pop();
+    if (!lastUserMessage) return [];
 
-/**
- * Generates a travel itinerary.
- * @param destination The travel destination.
- * @param duration The duration of the trip in days.
- * @param interests User's interests.
- * @param budget (Optional) The total budget for the trip.
- * @returns A promise that resolves to an ItineraryPlan.
- */
+    const prompt = `The user is searching for a trip. Their last message was "${lastUserMessage.text}". Their favorite destinations are ${profile.favoriteDestinations.join(', ')}. Based on this, suggest up to 3 alternative destinations. The last search results (if any) are in the chat history.`;
+    const fullHistory = chatHistory.map(m => `${m.sender}: ${m.text}`).join('\n');
+    
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: `${fullHistory}\n\n${prompt}`,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: alternativeSuggestionsSchema,
+                },
+            });
+
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.suggestions || []) as AlternativeSuggestion[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not get alternative suggestions.");
+    }
+};
+
+export const getRealTimeSuggestions = async (chatHistory: ChatMessage[], profile: UserProfile, itinerary: ItineraryPlan, currentLocation: { lat: number, lng: number }): Promise<RealTimeSuggestion[]> => {
+    const prompt = `A user's plans have been disrupted. Their last message was: "${chatHistory[chatHistory.length-1].text}". Their current itinerary is for ${itinerary.destination} and their current (mock) location is near ${currentLocation.lat}, ${currentLocation.lng}. Using Google Search grounding, suggest 2-3 real-world alternative activities nearby that they could do instead.`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: realTimeSuggestionsSchema,
+                    tools: [{ googleSearch: {} }]
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.suggestions || []) as RealTimeSuggestion[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not get real-time suggestions.");
+    }
+};
+
 export const getItinerary = async (destination: string, duration: number, interests: string, budget?: number): Promise<ItineraryPlan> => {
+    const prompt = `Create a detailed ${duration}-day travel itinerary for a trip to ${destination}. The traveler is interested in: ${interests}. ${budget ? `Their total budget is around $${budget} USD.` : ''} For each activity, find a real-world location with a specific name and full address. Also provide cultural tips and a budget breakdown.`;
     try {
-        const prompt = `Create a ${duration}-day travel itinerary for a trip to ${destination}. The user's interests are: "${interests}". ${budget ? `The total budget for the trip is strictly $${budget} USD.` : 'The user has not specified a budget, so create a plan with a reasonable, mid-range budget.'} For each suggested activity (morning, afternoon, evening), you must provide the name of a specific, real establishment (e.g., a museum, restaurant, park, or cafe), its full physical address, and a brief description. Generate a detailed budget breakdown for lodging, food, activities, and local transportation. The sum of the breakdown should match the total budget. Also include cultural tips and must-try food.`;
-
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: itinerarySchema,
-            },
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: itinerarySchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const plan = JSON.parse(jsonStr) as ItineraryPlan;
+            plan.interests = interests; // Add interests to the plan for later use
+            return plan;
         });
-
-        const jsonStr = result.text.trim();
-        // The AI generates the core plan; we re-attach the user's interests to the final object.
-        const parsed = JSON.parse(jsonStr) as Omit<ItineraryPlan, 'interests'>;
-        return { ...parsed, interests };
     } catch (error) {
-        throw handleGeminiError(error, "Could not create an itinerary. The AI service may be temporarily unavailable.");
+        throw handleApiError(error, "Failed to generate itinerary. The AI may be busy, or the request might be too complex. Try simplifying your interests.");
     }
 };
 
-/**
- * Generates AI-powered, creative images for a travel destination.
- * @param destination The travel destination city.
- * @param duration The trip duration in days.
- * @param interests A string of user interests.
- * @param budget The total trip budget.
- * @returns A promise that resolves to an array of base64 image strings.
- */
-export const generateDestinationImages = async (destination: string, duration: number, interests: string, budget?: number): Promise<string[]> => {
+export const getBudgetOptimizations = async (plan: ItineraryPlan): Promise<BudgetOptimizationSuggestion[]> => {
+    const prompt = `Analyze this travel itinerary for ${plan.destination} and suggest 2-4 actionable ways to save money without sacrificing the experience. Original Itinerary: ${JSON.stringify(plan)}`;
     try {
-        const getBudgetDescriptor = (b?: number, d?: number): string => {
-            if (!b || !d) return 'a vibrant, appealing';
-            const perDay = b / d;
-            if (perDay > 500) return 'a luxurious, opulent, and high-end';
-            if (perDay > 200) return 'a comfortable, stylish, mid-range';
-            return 'a charming, cozy, budget-friendly';
-        };
-
-        const budgetDescriptor = getBudgetDescriptor(budget, duration);
-        const interestsText = interests
-            ? `The traveler's interests are: "${interests}".`
-            : `The image should capture the iconic beauty and atmosphere of the destination.`;
-
-        const prompt = `Create a breathtaking, cinematic, and emotionally resonant travel photograph of ${destination}. The image should look like an award-winning shot from a National Geographic photographer.
-
-**Core Theme:** The scene must embody the spirit of a ${budgetDescriptor} trip and be heavily influenced by the traveler's interests: "${interestsText}".
-
-**Artistic Direction:**
-- **Mood & Atmosphere:** Evoke a powerful sense of place. Whether it's the serene tranquility of a hidden cove, the bustling energy of a city market, or the majestic grandeur of a mountain peak, the emotion should be palpable.
-- **Lighting:** Utilize dramatic and natural lighting. Aim for the soft, warm glow of the golden hour, the cool, moody tones of the blue hour, or dramatic sunbeams filtering through clouds.
-- **Composition:** Employ strong compositional techniques like the rule of thirds, leading lines, or framing to draw the viewer into the scene. The composition must be balanced and visually stunning.
-- **Color Palette:** Use a rich and vibrant color palette that feels authentic to the location but is artistically enhanced to be more captivating.
-
-**Technical Specifications:**
-- **Style:** Ultra-realistic, photorealistic, 8K resolution, incredibly detailed.
-- **Optics:** Emulate the look of a professional DSLR camera with a high-quality prime lens, creating a beautiful shallow depth of field and artistic bokeh where appropriate.
-
-**Strict Exclusions:** NO text, NO logos, NO watermarks, NO identifiable human faces. The focus must be entirely on the location and its unique atmosphere.`;
-
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: {
-                numberOfImages: 3,
-                outputMimeType: 'image/jpeg',
-                aspectRatio: '16:9',
-            },
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: budgetOptimizationSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.optimizations || []) as BudgetOptimizationSuggestion[];
         });
-        
-        return response.generatedImages.map(img => img.image.imageBytes);
-
     } catch (error) {
-        throw handleGeminiError(error, "Could not generate destination images. The AI service may be temporarily unavailable.");
+        throw handleApiError(error, "Failed to analyze budget optimizations.");
     }
 };
 
+export const getTravelChecklist = async (itinerary: ItineraryPlan): Promise<Checklist> => {
+    const prompt = `Generate a comprehensive travel checklist for a trip to ${itinerary.destination}. Include a packing list, essential documents (with real source links for visa info if applicable, using Google Search), and local essentials specific to the destination.`;
 
-/**
- * Parses a markdown string from the AI into a Checklist object.
- * @param markdown The raw markdown string from the Gemini API.
- * @returns A structured Checklist object.
- */
-const parseChecklistFromMarkdown = (markdown: string): Omit<Checklist, 'documents'> & { documents: { items: { item: string, checked: boolean }[] } } => {
-    const checklist: Omit<Checklist, 'documents'> & { documents: { items: { item: string, checked: boolean }[] } } = {
-        packingList: [],
-        documents: { items: [] },
-        localEssentials: [],
+    const checklistSchema = {
+        type: Type.OBJECT,
+        properties: {
+            packingList: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { item: { type: Type.STRING }, checked: { type: Type.BOOLEAN } } } },
+            documents: { type: Type.OBJECT, properties: { items: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { item: { type: Type.STRING }, checked: { type: Type.BOOLEAN } } } }, sources: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { uri: { type: Type.STRING }, title: { type: Type.STRING } } } } } },
+            localEssentials: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { item: { type: Type.STRING }, checked: { type: Type.BOOLEAN } } } }
+        },
+        required: ["packingList", "documents", "localEssentials"]
     };
 
-    const lines = markdown.split('\n');
-    let currentSection: keyof typeof checklist | null = null;
-
-    for (const line of lines) {
-        if (line.startsWith('### Packing List')) {
-            currentSection = 'packingList';
-        } else if (line.startsWith('### Essential Documents')) {
-            currentSection = 'documents';
-        } else if (line.startsWith('### Local Essentials')) {
-            currentSection = 'localEssentials';
-        } else if (currentSection && (line.startsWith('* ') || line.startsWith('- '))) {
-            const item = line.substring(2).trim();
-            if (item) {
-                if (currentSection === 'documents') {
-                     checklist.documents.items.push({ item, checked: false });
-                } else {
-                    checklist[currentSection].push({ item, checked: false });
-                }
-            }
-        }
-    }
-    return checklist;
-};
-
-
-/**
- * Generates a travel-ready checklist using Google Search grounding for visa info.
- * @param plan The ItineraryPlan to generate a checklist for.
- * @returns A promise that resolves to a Checklist object.
- */
-export const getTravelChecklist = async (plan: ItineraryPlan): Promise<Checklist> => {
     try {
-        const activitiesSummary = plan.itinerary.map(day => `${day.morning.description}, ${day.afternoon.description}, ${day.evening.description}`).join(', ');
-        const prompt = `Create a travel-ready checklist for a ${plan.itinerary.length}-day trip to ${plan.destination} for a US citizen. The planned activities include: ${activitiesSummary}.
-Respond in markdown format with three and only three sections, each with a heading: '### Packing List', '### Essential Documents', and '### Local Essentials'.
-- Under '### Packing List', generate a personalized packing list.
-- Under '### Essential Documents', use your search tool to provide up-to-date visa and entry document requirements for a US citizen traveling to ${plan.destination}.
-- Under '### Local Essentials', list the local currency, the main emergency phone number, and one highly recommended local travel app.
-For each section, provide a bulleted list of items.`;
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    tools: [{ googleSearch: {} }],
+                },
+            });
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                tools: [{ googleSearch: {} }],
-            },
-        });
-
-        const markdownText = response.text;
-        if (!markdownText) {
-            throw new Error("The AI returned an empty response.");
-        }
-
-        const checklist = parseChecklistFromMarkdown(markdownText);
-        
-        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        const sources = groundingChunks
-            ?.map((chunk: any) => chunk.web ? ({ uri: chunk.web.uri, title: chunk.web.title }) : null)
-            .filter((source: any): source is { uri: string; title: string } => source !== null);
-
-        return {
-            ...checklist,
-            documents: {
-                ...checklist.documents,
-                sources: sources,
+            // A second call to structure the grounded data
+            const structurePrompt = `Based on the following information, create a structured checklist object. Information: ${response.text}`;
+            const structuredResult = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: structurePrompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: checklistSchema,
+                }
+            });
+            
+            const checklist = JSON.parse(structuredResult.text) as Checklist;
+            // Add grounding metadata to the documents section
+// FIX: Return the generated checklist object to satisfy the function's return type.
+            if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+                checklist.documents.sources = response.candidates[0].groundingMetadata.groundingChunks.map(
+                    (chunk: any) => ({
+                        uri: chunk.web?.uri || '',
+                        title: chunk.web?.title || '',
+                    })
+                );
             }
-        };
-
+            return checklist;
+        });
     } catch (error) {
-        throw handleGeminiError(error, "Could not create a travel checklist. The AI service may be temporarily unavailable.");
+        throw handleApiError(error, "Failed to generate a travel checklist.");
     }
 };
 
-const mapMarkerSchema = {
+// FIX: Add all missing function exports to resolve module resolution errors.
+
+// Schema for map coordinates
+const mapCoordinatesSchema = {
     type: Type.OBJECT,
     properties: {
         markers: {
             type: Type.ARRAY,
-            description: "An array of map markers for the itinerary activities.",
+            description: "An array of map markers, one for each activity in the itinerary.",
             items: {
                 type: Type.OBJECT,
                 properties: {
-                    name: { type: Type.STRING, description: "The specific name of the location or landmark mentioned in the activity." },
+                    name: { type: Type.STRING, description: "The specific location name of the activity." },
                     lat: { type: Type.NUMBER, description: "The latitude of the location." },
                     lng: { type: Type.NUMBER, description: "The longitude of the location." },
-                    day: { type: Type.INTEGER, description: "The day of the itinerary this marker belongs to." },
+                    day: { type: Type.INTEGER, description: "The day of the itinerary this activity is on." },
                     timeOfDay: { type: Type.STRING, enum: ['Morning', 'Afternoon', 'Evening'], description: "The time of day for the activity." },
-                    activity: { type: Type.STRING, description: "A brief description of the activity at this marker." },
+                    activity: { type: Type.STRING, description: "A brief description of the activity." }
                 },
                 required: ["name", "lat", "lng", "day", "timeOfDay", "activity"]
             }
@@ -1452,396 +1369,691 @@ const mapMarkerSchema = {
     required: ["markers"]
 };
 
-// FIX: Stub implementation for getRealTimeSuggestions
-export const getRealTimeSuggestions = async (
-    chatHistory: ChatMessage[],
-    userProfile: UserProfile,
-    itinerary: ItineraryPlan,
-    location: { lat: number, lng: number }
-): Promise<RealTimeSuggestion[]> => {
-    console.log('STUB: getRealTimeSuggestions called');
-    return Promise.resolve([
-        { name: "Le Café de la Paix", address: "5 Place de l'Opéra, 75009 Paris", reason: "Classic Parisian cafe nearby, perfect for a coffee.", openingHours: "Open until 11 PM", travelTime: "5 min walk" },
-        { name: "Musée du Parfum Fragonard", address: "9 Rue Scribe, 75009 Paris", reason: "A quick, interesting museum if you have an hour to spare.", openingHours: "Open until 6 PM", travelTime: "8 min walk" }
-    ]);
-};
-
-// FIX: Stub implementation for getCoordinatesForActivities
 export const getCoordinatesForActivities = async (itinerary: DailyPlan[]): Promise<MapMarker[]> => {
-    console.log('STUB: getCoordinatesForActivities called');
-    // Simple mock based on a known location like Paris
-    return Promise.resolve([
-        { name: "Louvre Museum", lat: 48.8606, lng: 2.3376, day: 1, timeOfDay: 'Morning', activity: 'Visit the museum' },
-        { name: "Eiffel Tower", lat: 48.8584, lng: 2.2945, day: 1, timeOfDay: 'Afternoon', activity: 'Go up the tower' },
-        { name: "Moulin Rouge", lat: 48.8841, lng: 2.3323, day: 1, timeOfDay: 'Evening', activity: 'See a show' },
+    const activities = itinerary.flatMap(day => [
+        { ...day.morning, day: day.day, timeOfDay: 'Morning' as const, activity: day.morning.description, name: day.morning.locationName },
+        { ...day.afternoon, day: day.day, timeOfDay: 'Afternoon' as const, activity: day.afternoon.description, name: day.afternoon.locationName },
+        { ...day.evening, day: day.day, timeOfDay: 'Evening' as const, activity: day.evening.description, name: day.evening.locationName },
     ]);
+    const prompt = `For the following list of locations and activities, find the geographic coordinates (latitude and longitude) for each one.
+    Activities: ${JSON.stringify(activities.map(a => ({ name: a.name, address: a.address })))}`;
+
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: mapCoordinatesSchema,
+                    tools: [{ googleSearch: {} }]
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.markers || []) as MapMarker[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not retrieve coordinates for the itinerary locations.");
+    }
 };
 
-// FIX: Stub implementation for getWeatherForecast
-export const getWeatherForecast = async (destination: string, duration: number): Promise<WeatherForecast> => {
-    console.log('STUB: getWeatherForecast called');
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const icons: WeatherForecast[0]['icon'][] = ['sun', 'partly-cloudy', 'cloud', 'rain'];
-    return Promise.resolve(
-        Array.from({ length: duration }, (_, i) => ({
-            day: days[new Date(Date.now() + i * 86400000).getDay()],
-            highTemp: 20 + i,
-            lowTemp: 12 + i,
-            description: 'Mixed clouds',
-            icon: icons[i % icons.length],
-        }))
-    );
+export const getWeatherForecast = async (destination: string, days: number): Promise<WeatherForecast> => {
+    const prompt = `Provide a realistic, but fictional, ${days}-day weather forecast for ${destination}. Today is ${new Date().toLocaleDateString()}.`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: weatherForecastSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.forecast || []) as WeatherForecast;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not fetch weather forecast.");
+    }
 };
 
-// FIX: Stub implementation for getInsuranceQuotes
-export const getInsuranceQuotes = async (plan: ItineraryPlan): Promise<TravelInsuranceQuote[]> => {
-    console.log('STUB: getInsuranceQuotes called');
-    return Promise.resolve([
-        { provider: "SafetyWing", price: 45.50, coverage: { medical: { limit: 250000, description: "Emergency medical coverage." }, cancellation: { limit: 1000, description: "For covered reasons." }, baggage: { limit: 500, description: "For lost or delayed baggage." } }, bestFor: "Digital Nomads" },
-        { provider: "World Nomads", price: 75.20, coverage: { medical: { limit: 500000, description: "Includes adventure sports." }, cancellation: { limit: 2500, description: "Comprehensive cancellation." }, baggage: { limit: 1000, description: "Higher limits for baggage." } }, bestFor: "Adventure Travel" },
-        { provider: "Allianz Global", price: 95.00, coverage: { medical: { limit: 1000000, description: "Premium medical coverage." }, cancellation: { limit: 5000, description: "Cancel for any reason option." }, baggage: { limit: 2000, description: "Extensive baggage protection." } }, bestFor: "Family Coverage" }
-    ]);
+export const getInsuranceQuotes = async (itinerary: ItineraryPlan): Promise<TravelInsuranceQuote[]> => {
+    const prompt = `Generate 3-4 fictional but realistic travel insurance quotes for a ${itinerary.itinerary.length}-day trip to ${itinerary.destination}. The traveler's interests include ${itinerary.interests}.`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: insuranceQuotesSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.quotes || []) as TravelInsuranceQuote[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate insurance quotes.");
+    }
 };
 
-// FIX: Stub implementation for getNearbyAttractions
-export const getNearbyAttractions = async (name: string, location: string): Promise<NearbyAttraction[]> => {
-    console.log('STUB: getNearbyAttractions called');
-    return Promise.resolve([
-        { name: "Local Market", description: "A bustling market with local crafts and food." },
-        { name: "Historic Park", description: "A beautiful park with walking trails and monuments." },
-        { name: "Art Museum", description: "Features a collection of modern and classic art." }
-    ]);
+export const getNearbyAttractions = async (stayName: string, location: string): Promise<NearbyAttraction[]> => {
+    const prompt = `List 3-5 interesting attractions or points of interest near ${stayName} in ${location}.`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: nearbyAttractionsSchema,
+                    tools: [{ googleSearch: {} }]
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.attractions || []) as NearbyAttraction[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not find nearby attractions.");
+    }
 };
 
-// FIX: Stub implementation for getLocalVibe
-export const getLocalVibe = async (name: string, location: string): Promise<LocalVibe> => {
-    console.log('STUB: getLocalVibe called');
-    return Promise.resolve({
-        description: "The neighborhood is generally considered safe and vibrant at night, with many well-lit streets and a lively cafe culture. Local sources recommend staying on main roads after 11 PM.",
-        sources: [{ uri: "https://example-travel-blog.com/location-safety", title: "Is [Location] Safe at Night? - Travel Blog" }]
-    });
+// Schema for local vibe
+const localVibeSchema = {
+    type: Type.OBJECT,
+    properties: {
+        description: { type: Type.STRING, description: "A detailed, one-paragraph description of the local vibe and atmosphere, especially concerning safety and activity at night. Use a reassuring and informative tone." },
+    },
+    required: ["description"]
 };
 
-// FIX: Stub implementation for generateTravelBuddyProfile
+export const getLocalVibe = async (stayName: string, location: string): Promise<LocalVibe> => {
+    const prompt = `Analyze the local vibe for the area around "${stayName}" in "${location}". Focus on the atmosphere at night, walkability, safety, and what kind of activities (e.g., quiet residential, bustling nightlife, etc.) are common in the evening. Use Google Search grounding for real-world context.`;
+    try {
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    tools: [{ googleSearch: {} }],
+                },
+            });
+
+            const structurePrompt = `Based on the following information, generate a structured local vibe object: ${response.text}`;
+            const structuredResult = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: structurePrompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: localVibeSchema,
+                }
+            });
+
+            const vibe = JSON.parse(structuredResult.text) as LocalVibe;
+            if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+                vibe.sources = response.candidates[0].groundingMetadata.groundingChunks.map(
+                    (chunk: any) => ({
+                        uri: chunk.web?.uri || '',
+                        title: chunk.web?.title || '',
+                    })
+                ).filter((s: GroundingSource) => s.uri);
+            }
+            return vibe;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not analyze the local vibe.");
+    }
+};
+
+export const generateDestinationImages = async (destination: string, duration: number, interests: string, budget?: number): Promise<string[]> => {
+    const prompt = `Generate a set of 4 stunning, photorealistic images representing a trip to ${destination} for ${duration} days, with interests in ${interests}. ${budget ? `The trip has a budget of around $${budget}.` : ''} The images should evoke a sense of adventure, culture, and relaxation.`;
+    try {
+        return await withRetry(async () => {
+            const response = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: prompt,
+                config: {
+                    numberOfImages: 4,
+                    outputMimeType: 'image/jpeg',
+                },
+            });
+
+            return response.generatedImages.map(img => img.image.imageBytes);
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate destination images.");
+    }
+};
+
 export const generateTravelBuddyProfile = async (preferences: TravelBuddyPreferences, userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<TravelBuddyProfile> => {
-    console.log('STUB: generateTravelBuddyProfile called');
-    return Promise.resolve({
-        name: "Alex the Explorer",
-        bio: "An avid photographer and foodie who loves finding hidden gems. Alex believes the best travel memories are made off the beaten path.",
-        keyTraits: ["Spontaneous", "Loves trying new food", "Early riser"],
-        travelStyle: preferences.travelStyle,
-        budget: preferences.budget,
-        gender: "Non-binary",
-        age: 28,
-        compatibilityScore: 88,
-        compatibilityReason: "Your love for adventure and their spontaneous nature makes for a great match!"
-    });
+    const prompt = `Create a fictional travel buddy profile that matches the following user preferences. The buddy should be compatible with a user who likes ${userProfile.favoriteDestinations.join(', ')} and has a budget of ${userProfile.budget.hotelMaxPrice ? `$${userProfile.budget.hotelMaxPrice}/night` : 'any'}.
+    Preferences: ${JSON.stringify(preferences)}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: travelBuddyProfileSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as TravelBuddyProfile;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate a travel buddy profile.");
+    }
 };
 
-// FIX: Stub implementation for generateJointItinerary
 export const generateJointItinerary = async (userProfile: UserProfile, buddyProfile: TravelBuddyProfile, destination: string, duration: number): Promise<ItineraryPlan> => {
-    console.log('STUB: generateJointItinerary called');
-    return getItinerary(destination, duration, `${userProfile.favoriteDestinations?.join(', ')}, ${buddyProfile.keyTraits.join(', ')}`);
+    const prompt = `Create a joint travel itinerary for two people: User and a Buddy. The itinerary should be for a ${duration}-day trip to ${destination}. It must balance the interests of both.
+    User's Interests: ${userProfile.favoriteDestinations.join(', ')}, hotel budget up to $${userProfile.budget.hotelMaxPrice}.
+    Buddy's Profile: ${JSON.stringify(buddyProfile)}.
+    Generate a detailed itinerary with activities that both would enjoy.`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: itinerarySchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as ItineraryPlan;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate a joint itinerary.");
+    }
 };
 
-// FIX: Stub implementation for chatWithTravelBuddy
-export const chatWithTravelBuddy = async (chatHistory: ChatMessage[], userProfile: UserProfile, buddyProfile: TravelBuddyProfile, jointPlan: ItineraryPlan): Promise<string> => {
-    console.log('STUB: chatWithTravelBuddy called');
-    return Promise.resolve("That's a great idea! I'm totally up for that. Should we book it now or wait until we get there?");
+export const chatWithTravelBuddy = async (chatHistory: ChatMessage[], userProfile: UserProfile, buddyProfile: TravelBuddyProfile, itinerary: ItineraryPlan): Promise<string> => {
+    const formattedHistory = chatHistory.map(m => `${m.sender === 'user' ? 'You' : buddyProfile.name}: ${m.text}`).join('\n');
+    const prompt = `You are roleplaying as ${buddyProfile.name}, a travel buddy. Your personality is defined by: ${JSON.stringify(buddyProfile)}. You are chatting with a user about your upcoming joint trip to ${itinerary.destination}.
+    Here is the conversation so far:
+    ${formattedHistory}
+    
+    Now, provide a natural, in-character response to the user's last message.`;
+    try {
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+            });
+            return response.text;
+        });
+    } catch (error) {
+        throw handleApiError(error, "The travel buddy is currently unavailable.");
+    }
 };
 
-// FIX: Stub implementation for generateBuddyProfilePicture
-export const generateBuddyProfilePicture = async (profile: TravelBuddyProfile): Promise<string> => {
-    // This is a mock base64 string. A real implementation would call an image generation API.
-    return Promise.resolve("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
+export const generateBuddyProfilePicture = async (buddyProfile: TravelBuddyProfile): Promise<string> => {
+    const prompt = `Generate a realistic, license-free, high-quality profile picture for a travel buddy.
+    Name: ${buddyProfile.name}
+    Age: ${buddyProfile.age}
+    Gender: ${buddyProfile.gender}
+    Bio: ${buddyProfile.bio}
+    The style should be a natural, friendly portrait of a traveler.`;
+    try {
+        return await withRetry(async () => {
+            const response = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: prompt,
+                config: {
+                    numberOfImages: 1,
+                    outputMimeType: 'image/jpeg',
+                    aspectRatio: '1:1',
+                },
+            });
+            return response.generatedImages[0].image.imageBytes;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate a profile picture.");
+    }
 };
 
-// FIX: Stub implementation for generateTripMemory
-export const generateTripMemory = async (plan: ItineraryPlan): Promise<Omit<TripMemory, 'tripId'>> => {
-    console.log('STUB: generateTripMemory called');
-    return Promise.resolve({
-        title: `Unforgettable memories from ${plan.destination}`,
-        narrativeSummary: `Our ${plan.itinerary.length}-day trip to ${plan.destination} was a whirlwind of amazing food, stunning sights, and incredible experiences. We'll never forget the moments we shared.`,
-        keyStats: { distanceTraveled: 4500, destinationsVisited: 1, photosTaken: 523 },
-        videoHighlightImageUrls: [
-            "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?q=80&w=800&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=800&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1533105079780-52b9be4ac215?q=80&w=800&auto=format&fit=crop",
-        ],
-        musicTheme: 'Uplifting',
-        mapRoute: plan.itinerary.flatMap(day => [{ lat: 48.85, lng: 2.35 }, { lat: 48.86, lng: 2.34 }]).slice(0, 5) // Mock route
-    });
+export const generateTripMemory = async (itinerary: ItineraryPlan): Promise<Omit<TripMemory, 'tripId'>> => {
+    const prompt = `Based on the following travel itinerary for a trip to ${itinerary.destination}, create a "Trip Memory" object. This should include a catchy title, a warm narrative summary, creative key statistics, a music theme, and map route coordinates.
+    Itinerary: ${JSON.stringify(itinerary)}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: tripMemorySchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as Omit<TripMemory, 'tripId'>;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate the trip memory.");
+    }
 };
 
-// FIX: Stub implementation for generateVibeSearchIdeas
 export const generateVibeSearchIdeas = async (vibe: string): Promise<VibeSearchResult> => {
-    console.log('STUB: generateVibeSearchIdeas called');
-    return Promise.resolve({
-        images: [/* base64 strings */],
-        destinations: [
-            { name: "Kyoto, Japan", reason: "Matches the vibe of ancient traditions and serene nature." },
-            { name: "Prague, Czech Republic", reason: "Famous for its cobblestone streets and historic architecture." },
-            { name: "Bruges, Belgium", reason: "A fairytale medieval town with canals and cozy cafes." }
-        ]
-    });
+    const prompt = `A user wants to find travel destinations based on a vibe.
+    Vibe description: "${vibe}"
+    First, generate a diverse set of 4 stunning, photorealistic images that capture this vibe.
+    Second, suggest 3 real-world travel destinations that perfectly match the vibe, with a compelling one-sentence reason for each.`;
+    try {
+        return await withRetry(async () => {
+            const imageResponse = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: `A stunning, photorealistic image that captures the vibe of: "${vibe}"`,
+                config: {
+                    numberOfImages: 4,
+                    outputMimeType: 'image/jpeg',
+                },
+            });
+            const images = imageResponse.generatedImages.map(img => img.image.imageBytes);
+
+            const textResponse = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: destinationSuggestionsSchema,
+                },
+            });
+            const jsonStr = textResponse.text.trim();
+            const destinations = (JSON.parse(jsonStr) as { destinations: DestinationSuggestion[] }).destinations;
+
+            return { images, destinations };
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate vibe search ideas.");
+    }
 };
 
-// FIX: Stub implementation for getAILocalMatches
-export const getAILocalMatches = async (location: string, userProfile: UserProfile, profileType: 'stay' | 'hangout'): Promise<LocalProfile[]> => {
-    console.log('STUB: getAILocalMatches called');
-    return Promise.resolve([
-        { id: '1', profileType, name: 'Yuki', age: 28, location: `Shibuya, ${location}`, avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200', bio: "I love showing people the best hidden ramen spots and vintage shops in Tokyo!", interests: ['Foodie', 'Fashion', 'Photography'], languages: ['Japanese', 'English'], isVerified: true, compatibilityScore: 92, compatibilityReason: "Shared love for food and photography.", housePhotos: ['https://images.unsplash.com/photo-1560185007-c5ca9d2c015d?q=80&w=400'], hostingPolicy: 'Small Fee', maxGuests: 2, reviews: [], offeredExperiences: [] },
-        { id: '2', profileType, name: 'Marco', age: 34, location: `Trastevere, ${location}`, avatarUrl: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?q=80&w=200', bio: "Let's grab an espresso and explore ancient ruins. I enjoy deep conversations and long walks.", interests: ['History', 'Art', 'Coffee'], languages: ['Italian', 'English'], isVerified: false, compatibilityScore: 85, compatibilityReason: "A great match for cultural exploration.", housePhotos: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=400'], hostingPolicy: 'Free', maxGuests: 1, reviews: [], offeredExperiences: [] }
-    ]);
+export const getAILocalMatches = async (location: string, userProfile: UserProfile, matchType: 'stay' | 'hangout'): Promise<LocalProfile[]> => {
+    const prompt = `A user is looking for a local ${matchType} in ${location}. Generate a list of 5-8 fictional but realistic and diverse local profiles that would be a good match for the user.
+    User Profile: ${JSON.stringify(userProfile)}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: homeShareHostSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            // Add the profileType to each host
+            const hosts = (parsed.hosts || []).map((h: any) => ({ ...h, profileType: matchType }));
+            return hosts as LocalProfile[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not find local matches.");
+    }
 };
 
-// FIX: Stub implementation for getHangoutSuggestions
-export const getHangoutSuggestions = async (userProfile: UserProfile, local: LocalProfile): Promise<HangoutSuggestion[]> => {
-    console.log('STUB: getHangoutSuggestions called');
-    return Promise.resolve([
-        { title: "Explore a Local Market", description: "Let's wander through the nearby market and grab some local snacks.", location: "Central Market", estimatedCost: "$10-20" },
-        { title: "Coffee & Chat", description: "I know a great little cafe where we can chat and get to know each other.", location: "The Corner Grind", estimatedCost: "Under $10" },
-        { title: "Scenic Viewpoint Walk", description: "There's a beautiful viewpoint not too far away. We could take a walk and enjoy the scenery.", location: "Sunset Hill", estimatedCost: "Free" }
-    ]);
+// Schema for Hangout suggestions
+const hangoutSuggestionsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        suggestions: {
+            type: Type.ARRAY,
+            description: "An array of 2-3 creative and personalized hangout suggestions.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    title: { type: Type.STRING, description: "A catchy title for the hangout idea." },
+                    description: { type: Type.STRING, description: "A one-sentence description of the activity." },
+                    location: { type: Type.STRING, description: "A specific, real-world location for the hangout." },
+                    estimatedCost: { type: Type.STRING, description: "e.g., 'Free', '$10-20', etc." },
+                },
+                required: ["title", "description", "location", "estimatedCost"]
+            }
+        }
+    },
+    required: ["suggestions"]
 };
 
-// FIX: Stub implementation for getAIVoyageMissions
+export const getHangoutSuggestions = async (userProfile: UserProfile, localProfile: LocalProfile): Promise<HangoutSuggestion[]> => {
+    const prompt = `Generate 2-3 creative and personalized hangout suggestions for a user and a local. The suggestions should combine the interests of both people.
+    User's Interests: ${userProfile.favoriteDestinations.join(', ')} (can be used to infer general interests).
+    Local's Profile: ${JSON.stringify(localProfile)}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: hangoutSuggestionsSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.suggestions || []) as HangoutSuggestion[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate hangout suggestions.");
+    }
+};
+
 export const getAIVoyageMissions = async (profile: GamificationProfile): Promise<AIVoyageMission[]> => {
-    console.log('STUB: getAIVoyageMissions called');
-    return Promise.resolve([
-        { title: "Culinary Quest in Italy", description: "Explore the foodie scene in Rome and learn to make pasta.", destination: "Rome, Italy", badgeToUnlock: 'foodie-explorer', pointsToEarn: 300 },
-        { title: "Connect in Kyoto", description: "Stay with a local host and discover the hidden temples of Kyoto.", destination: "Kyoto, Japan", badgeToUnlock: 'explorer-buddy', pointsToEarn: 500 },
-        { title: "Remote Work in Bali", description: "Book a coworking space and experience the digital nomad life in Canggu.", destination: "Canggu, Bali", badgeToUnlock: 'digital-nomad', pointsToEarn: 400 }
-    ]);
-};
-
-// FIX: Stub implementation for getTravelTrends
-export const getTravelTrends = async (userProfile: UserProfile): Promise<TravelTrend[]> => {
-    console.log('STUB: getTravelTrends called');
-    return Promise.resolve([
-        { id: '1', destination: 'Albanian Riviera', image: 'https://images.unsplash.com/photo-1617373258398-63a48e7e2b6a?q=80&w=400', trendScore: 88, monthlyGrowth: 150, category: 'Hidden Gem', socialProof: [{ platform: 'TikTok', value: '2.1M Views' }], personalizationReason: "A perfect hidden gem for your adventurous spirit." },
-        { id: '2', destination: 'Seoul, South Korea', image: 'https://images.unsplash.com/photo-1534275336963-441a5d61d011?q=80&w=400', trendScore: 95, monthlyGrowth: 120, category: 'City Break', socialProof: [{ platform: 'Instagram', value: '+1.5M Posts' }], personalizationReason: "Your interest in culture and food makes Seoul a great fit." }
-    ]);
+    const prompt = `Based on the user's gamification profile, suggest exactly 3 new, personalized "Voyage Missions". The missions should be creative and encourage travel or use of the app's features. The user has already earned these badges: ${profile.earnedBadgeIds.join(', ')}.
+    User Profile: ${JSON.stringify(profile)}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: voyageMissionsSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.missions || []) as AIVoyageMission[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate new voyage missions.");
+    }
 };
 
 export const getSuperServiceData = async (location: string, userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<SuperServiceData> => {
+    const lastTrip = savedTrips.find(t => t.type === 'itinerary');
+    const prompt = `Generate a comprehensive set of super service data for a user currently in ${location}.
+    - List popular, real-world food and ride apps for this city.
+    - Create a list of 8-12 diverse, fictional but realistic restaurants available for delivery, ensuring the provider matches one of the listed apps.
+    - Based on the user's profile, provide 2-3 personalized food suggestions.
+    - If the user has a saved itinerary, suggest a ride to the next logical destination.
+    - Create one creative "smart combo" deal.
+    User Profile: ${JSON.stringify(userProfile)}
+    Most recent itinerary (if available): ${lastTrip ? JSON.stringify(lastTrip.data) : 'None'}`;
+
     try {
-        const prompt = `You are an AI travel assistant acting as a local expert for ${location}.
-Your primary task is to identify the most popular, real-world applications (apps) that locals and tourists use for food delivery and ride-hailing in this city.
-
-1.  First, populate the \`availableApps\` array with the top 2-4 apps for 'Food Delivery' and 2-4 for 'Ride-Hailing'. Provide a brief, helpful description for each app.
-2.  Then, generate personalized suggestions for restaurants and rides.
-3.  CRITICAL: The \`provider\` for each restaurant and the \`serviceName\` for each ride option MUST EXACTLY match one of the app names you identified in the \`availableApps\` list. For example, if you list 'Uber Eats', then some restaurants must have 'Uber Eats' as their provider.
-4.  Base your personalized suggestions on the user's profile and trip context.
-
-User Profile:
-- Favorite Destinations (Interests): ${userProfile.favoriteDestinations.join(', ') || 'None'}
-- Budget: Prefers mid-range options.
-
-Saved Trips Context:
-${savedTrips.length > 0 ? savedTrips.slice(0, 2).map(t => `- ${t.name}`).join('\n') : 'None'}
-`;
-
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: superServiceDataSchema,
-            },
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: superServiceDataSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as SuperServiceData;
         });
-
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed as SuperServiceData;
     } catch (error) {
-        throw handleGeminiError(error, `Could not find services for ${location}. Please try a different city.`);
+        throw handleApiError(error, "Could not fetch local services data.");
     }
 };
 
 export const generateSocialPostSuggestion = async (memory: TripMemory): Promise<SocialPostSuggestion> => {
+    const prompt = `Based on this trip memory, generate a short, engaging social media caption and a set of relevant hashtags.
+    Memory: ${JSON.stringify(memory)}`;
     try {
-        const prompt = `You are a creative social media manager for a travel enthusiast. Based on the following travel memory, generate a short, engaging caption and a set of relevant hashtags for an Instagram or Facebook post. The tone should be personal, friendly, and inspiring. Use emojis.
-
-        Travel Memory Title: "${memory.title}"
-        Travel Memory Summary: "${memory.narrativeSummary}"
-        `;
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: socialPostSuggestionSchema,
-            },
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: socialPostSuggestionSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as SocialPostSuggestion;
         });
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed as SocialPostSuggestion;
     } catch (error) {
-        throw handleGeminiError(error, "Could not generate a social media post suggestion.");
-    }
-};
-
-// FIX: Stub implementation for generateHangoutRequestMessage
-export const generateHangoutRequestMessage = async (userProfile: UserProfile, local: LocalProfile, suggestion: HangoutSuggestion): Promise<string> => {
-    console.log('STUB: generateHangoutRequestMessage called');
-    return Promise.resolve(`Hey ${local.name}! I'm visiting soon and saw your profile. I'd love to take you up on your suggestion to "${suggestion.title}". It sounds like a great way to experience the city. Let me know if you might be free!`);
-};
-
-export const getCoworkingSpaces = async (location: string, userProfile: UserProfile): Promise<CoworkingSpace[]> => {
-    try {
-        const prompt = `
-            You are a data generation engine for a travel app. Your task is to generate a list of 5-8 fictional but highly realistic coworking spaces in ${location}.
-            The addresses must be real-looking street addresses within the specified location.
-            Tailor the "aiInsight" and "networkingOpportunity" to a traveler with the following preferences:
-            - Interests: ${userProfile.favoriteDestinations?.join(', ') || 'general travel'}
-            - Budget: ${userProfile.budget.hotelMaxPrice ? `around $${userProfile.budget.hotelMaxPrice}/night for accommodation, so mid-range coworking is good` : 'mid-range'}
-
-            Generate realistic details for each space, including amenities, pricing, and user reviews.
-            Use license-free image URLs from Unsplash, Pexels, etc., for modern office or coworking interiors.
-        `;
-
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: coworkingSpaceSchema,
-            },
-        });
-
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed.spaces as CoworkingSpace[];
-    } catch (error) {
-        throw handleGeminiError(error, "Could not find coworking spaces at this time. The AI service may be temporarily unavailable.");
-    }
-};
-
-// FIX: Implement missing functions.
-export const getBudgetOptimizations = async (plan: ItineraryPlan): Promise<BudgetOptimizationSuggestion[]> => {
-    try {
-        const prompt = `You are a budget travel expert. Analyze the following travel itinerary and suggest 2-4 specific, actionable ways to save money without significantly compromising the experience. Focus on suggesting alternative activities, dining options, or transport methods.
-
-        **Itinerary to Analyze:**
-        - Destination: ${plan.destination}
-        - Duration: ${plan.itinerary.length} days
-        - Total Budget: $${plan.totalBudget}
-        - Interests: ${plan.interests}
-        - Daily Plan Summary: ${plan.itinerary.map(day => `Day ${day.day}: ${day.morning.locationName}, ${day.afternoon.locationName}, ${day.evening.locationName}`).join('; ')}
-
-        For each suggestion, provide a clear alternative and a realistic estimated saving in USD.
-        `;
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: budgetOptimizationSchema,
-            },
-        });
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed.optimizations as BudgetOptimizationSuggestion[];
-    } catch (error) {
-        throw handleGeminiError(error, "Could not generate budget optimizations at this time.");
-    }
-};
-
-export const getAIHomeSuggestions = async (userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<AIHomeSuggestion[]> => {
-    try {
-        const prompt = `You are a proactive AI travel assistant. Based on the user's profile and their saved trips, generate exactly 2 personalized and actionable "next step" suggestions for their home dashboard. The suggestions should be diverse and encourage exploration of the app's features.
-
-        **User Profile:**
-        - Favorite Destinations/Interests: ${userProfile.favoriteDestinations.join(', ') || 'None'}
-        - Budget level: ${userProfile.budget.hotelMaxPrice ? 'Mid-range to Luxury' : 'Budget-conscious'}
-
-        **Saved Trips:**
-        ${savedTrips.length > 0 ? savedTrips.map(t => `- ${t.name}`).join('\n') : 'No saved trips yet.'}
-
-        **Example Suggestions:**
-        - If they have no trips, suggest they use the 'Inspire' tab.
-        - If they have a saved search, suggest they build an itinerary for it in the 'Planner'.
-        - If they have an itinerary, suggest they find a 'Travel Buddy' for it.
-        - If they have mentioned an interest in food, suggest they explore 'Super Services' for their next trip.
-
-        Generate the suggestions now.`;
-
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: aiHomeSuggestionsSchema,
-            },
-        });
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed.suggestions as AIHomeSuggestion[];
-    } catch (error) {
-        throw handleGeminiError(error, "Could not generate home suggestions at this time.");
+        throw handleApiError(error, "Could not generate social post suggestion.");
     }
 };
 
 export const getQASummary = async (question: string, answers: string[]): Promise<string> => {
+    const prompt = `Summarize the following answers to the question: "${question}". Combine the key points from the answers into a single, helpful paragraph.
+    Answers:
+    ${answers.map(a => `- ${a}`).join('\n')}`;
     try {
-        if (answers.length === 0) {
-            return "No answers available to summarize.";
-        }
-        const prompt = `You are an AI assistant that summarizes community discussions.
-        Analyze the following travel-related question and the answers provided by the community.
-        Provide a concise, helpful summary that synthesizes the key points from the answers. The summary should directly address the user's question.
-
-        **Question:**
-        "${question}"
-
-        **Community Answers:**
-        ${answers.map(a => `- "${a}"`).join('\n')}
-
-        **Your Summary:**`;
-
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+            });
+            return response.text;
         });
-
-        const summary = response.text.trim();
-        if (!summary) {
-            throw new Error("The AI returned an empty summary.");
-        }
-        return summary;
     } catch (error) {
-        throw handleGeminiError(error, "Could not generate a summary for the Q&A.");
+        throw handleApiError(error, "Could not summarize the answers.");
+    }
+};
+
+export const getCoworkingSpaces = async (location: string, userProfile: UserProfile): Promise<CoworkingSpace[]> => {
+    const prompt = `Generate a list of 5-8 fictional but realistic coworking spaces in ${location}. Include AI insights that might appeal to a user with these preferences: ${JSON.stringify(userProfile)}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: coworkingSpaceSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            // Simulate lat/lng for map view
+            return (parsed.spaces || []).map((space: CoworkingSpace, index: number) => ({
+                ...space,
+                lat: 40.7128 + (Math.random() - 0.5) * 0.1, // Mock data around NYC
+                lng: -74.0060 + (Math.random() - 0.5) * 0.1,
+            })) as CoworkingSpace[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not find coworking spaces.");
+    }
+};
+
+export const getAIHomeSuggestions = async (userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<AIHomeSuggestion[]> => {
+    const prompt = `Based on the user's profile and their saved trips, generate exactly 2 personalized "next step" suggestions to display on their home dashboard.
+    User Profile: ${JSON.stringify(userProfile)}
+    Saved Trips: ${JSON.stringify(savedTrips.slice(0, 3).map(t => t.name))}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: aiHomeSuggestionsSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.suggestions || []) as AIHomeSuggestion[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate home suggestions.");
     }
 };
 
 export const getFlightStatus = async (flightNumber: string): Promise<FlightStatus> => {
+    const prompt = `Generate a realistic but fictional, detailed, real-time flight status object for flight number ${flightNumber}. The flight should be between two major international airports. If the flight is "En Route", include a live position and a series of waypoints along a great-circle path. Include a helpful AI summary. Today's date is ${new Date().toISOString()}.`;
     try {
-        const prompt = `You are a sophisticated flight tracking data aggregator. Your task is to provide a complete, realistic, real-time flight status report for the flight number: "${flightNumber}".
-        Simulate data as if you are fetching it from multiple sources like FlightAware, FlightRadar24, and the airline's own API.
-        
-        CRITICAL INSTRUCTIONS:
-        - The current date is ${new Date().toISOString()}. All scheduled and actual times should be realistic relative to this date.
-        - Generate all fields in the provided schema, including realistic latitude/longitude for airports, and if the flight is 'En Route', provide a plausible live position.
-        - **Waypoints**: If the flight status is 'En Route', you MUST generate a 'waypoints' array containing 5-7 intermediate geographical points along the great-circle path from departure to arrival. Each waypoint must have a realistic latitude, longitude, an estimated time of arrival (ETA) in ISO 8601 format, and its corresponding flight progress percentage. If the status is NOT 'En Route', this array MUST be empty.
-        - The 'aiSummary' must be a human-friendly, concise summary of the flight's current situation.
-        - If the flight is delayed, the summary should explain the reason (e.g., weather, technical issue).
-        - If the flight is cancelled, provide a plausible reason in the summary.
-        - Ensure airport names, IATA codes, and city names are accurate.
-        `;
-        const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: flightStatusSchema,
-            },
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: flightStatusSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as FlightStatus;
         });
-        const jsonStr = result.text.trim();
-        const parsed = JSON.parse(jsonStr);
-        return parsed as FlightStatus;
-
     } catch (error) {
-        throw handleGeminiError(error, `Could not find real-time data for flight ${flightNumber}. Please check the flight number and try again.`);
+        throw handleApiError(error, "Could not retrieve flight status.");
+    }
+};
+
+// FIX: Updated function to accept WandergramPost[] and adjusted prompt and data mapping accordingly.
+export const getAIDiscoverySuggestions = async (posts: WandergramPost[], userProfile: UserProfile): Promise<AIDiscoveryData> => {
+    const prompt = `You are a sophisticated AI travel analyst for a social travel app called FlyWise. Your task is to analyze all available Wandergram posts and a user's profile to generate personalized discovery suggestions.
+
+    **User Profile for Personalization:**
+    - Favorite Destinations: ${userProfile.favoriteDestinations.join(', ') || 'None specified'}
+    - Budget: Max hotel price per night is around $${userProfile.budget.hotelMaxPrice || 'any'}.
+    - Interests (inferred from favorites): General sightseeing, culture.
+
+    **All Available Wandergram Posts (JSON format):**
+    ${JSON.stringify(posts.map(p => ({id: p.id, user: p.user.name, caption: p.caption, location: p.location, likes: p.likes, createdAt: p.createdAt, imageUrl: p.imageUrl})))}
+
+    **Your Task:**
+    Based on the user profile and the provided posts, generate the following curated lists:
+    1.  **Trending Destinations:** Identify 3-4 destinations that are currently popular. Consider a combination of high 'likes', recent 'createdAt' dates, and multiple posts about the same location. Pick a representative image from one of the posts.
+    2.  **Hidden Gems:** Identify 2-3 post IDs for posts about unique or less-common destinations that still have high engagement (good like count). These are places off the beaten path.
+    3.  **For You (Recommendations):** Identify 2-3 post IDs for posts that are a strong match for the user's personal preferences (favorite destinations, budget).
+
+    Return the results in the specified JSON format.`;
+
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: aiDiscoverySchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as AIDiscoveryData;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate AI discovery suggestions.");
+    }
+};
+
+// FIX: Add getTravelTrends function
+export const getTravelTrends = async (userProfile: UserProfile): Promise<TravelTrend[]> => {
+    const prompt = `Generate a list of 5-8 diverse and personalized travel trends for a user with these preferences: favorite destinations are ${JSON.stringify(userProfile.favoriteDestinations)} and a general travel budget. For each trend, provide a compelling personalization reason tailored to them.`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: travelTrendsSchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            return (parsed.trends || []) as TravelTrend[];
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not fetch travel trends at this time.");
+    }
+};
+
+export const generateSocialReel = async (itinerary: ItineraryPlan, images: { mimeType: string, dataUrl: string }[]): Promise<SocialReel> => {
+    const prompt = `Given an itinerary for a trip to ${itinerary.destination} and a set of user-provided images, generate a social media reel. This includes a catchy title, a music suggestion, a short text overlay for each image (the number of text overlays must match the number of images), and a social media post with a caption and hashtags.
+    Itinerary Details: ${itinerary.interests}, for ${itinerary.itinerary.length} days.
+    Number of images provided: ${images.length}`;
+
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: socialReelSchema,
+                },
+            });
+
+            const jsonStr = result.text.trim();
+            const parsed = JSON.parse(jsonStr);
+            // We need to combine the generated text with the user's images.
+            const reel: SocialReel = {
+                tripId: '', // Will be set later
+                title: parsed.title,
+                musicSuggestion: parsed.musicSuggestion,
+                socialPost: parsed.socialPost,
+                scenes: images.map((img, index) => ({
+                    imageUrl: img.dataUrl,
+                    overlayText: parsed.sceneTexts[index] || `Scene ${index + 1}`,
+                })),
+            };
+            return reel;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate social reel.");
+    }
+};
+
+export const generateHangoutRequestMessage = async (userProfile: UserProfile, localProfile: LocalProfile, suggestion: HangoutSuggestion): Promise<string> => {
+    const prompt = `Generate a friendly, casual, and polite icebreaker message from a user to a local to request a hangout. The message should sound natural and reference a shared interest if possible.
+    User Profile: ${JSON.stringify(userProfile)}
+    Local's Profile: ${JSON.stringify(localProfile)}
+    Suggested Hangout: ${JSON.stringify(suggestion)}`;
+    try {
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+            });
+            return response.text;
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate an icebreaker message.");
+    }
+};
+
+export const generateStorySummary = async (title: string, content: string): Promise<{ summary: string; estimatedCost: number; tags: string[] }> => {
+    const prompt = `Based on the following travel story, generate a catchy one-sentence summary for social media (with emojis), a realistic estimated total cost in USD for one person, and 3-5 relevant tags.
+    Title: ${title}
+    Content: ${content}`;
+    try {
+        return await withRetry(async () => {
+            const result = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: storySummarySchema,
+                },
+            });
+            const jsonStr = result.text.trim();
+            return JSON.parse(jsonStr) as { summary: string; estimatedCost: number; tags: string[] };
+        });
+    } catch (error) {
+        throw handleApiError(error, "Could not generate a summary for this story.");
+    }
+};
+
+export const chatAboutImage = async (base64Image: string, mimeType: string, question: string): Promise<string> => {
+    const prompt = "You are a helpful and knowledgeable travel assistant. A user has provided an image and is asking a question about it. Provide a concise and informative answer based on the visual information. If you cannot determine the answer from the image, say so politely. Do not invent information. User's question: " + question;
+    
+    try {
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: {
+                    parts: [
+                        { inlineData: { data: base64Image, mimeType: mimeType } },
+                        { text: prompt }
+                    ]
+                },
+            });
+            return response.text;
+        });
+    } catch (error) {
+        throw handleApiError(error, "I'm having trouble analyzing the image right now. Please try again later.");
     }
 };

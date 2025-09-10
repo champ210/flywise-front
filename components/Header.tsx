@@ -13,7 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onOpenVipModal, isLoggedIn, onLoginClick, onSignUpClick, onLogoutClick, isOffline }) => {
   return (
-    <header className="bg-white shadow-sm print:hidden">
+    <header className="print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Icon name="logo" className="h-8 w-8 text-blue-600" />
@@ -42,20 +42,20 @@ const Header: React.FC<HeaderProps> = ({ onOpenVipModal, isLoggedIn, onLoginClic
             <>
               <button 
                 onClick={onLoginClick}
-                className="text-xs sm:text-sm font-medium text-slate-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md px-2 py-1 whitespace-nowrap"
+                className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md px-3 sm:px-4 py-2 whitespace-nowrap"
               >
                 Login
               </button>
               <button 
                 onClick={onSignUpClick}
-                className="inline-flex items-center px-3 sm:px-4 py-2 border border-slate-300 text-xs sm:text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
+                className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
               >
                 Create Account
               </button>
             </>
           )}
           
-          <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+          <div className="h-6 w-px bg-slate-200/80 hidden sm:block"></div>
 
             <button 
                 onClick={onOpenVipModal}
