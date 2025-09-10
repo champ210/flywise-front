@@ -1,9 +1,10 @@
 
 
+
 import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Imported the 'TravelStory' type to resolve a TypeScript compilation error.
+// FIX: Changed import from TravelStory to WandergramPost to match the type of data being passed from the SocialFeed component.
 // FIX: Add TravelTrend type to imports
-import { Flight, Stay, Car, ApiParams, ItineraryPlan, Checklist, DailyPlan, MapMarker, TravelInsuranceQuote, NearbyAttraction, ChatMessage, UserProfile, SavedTrip, SearchResult, WeatherForecast, ItinerarySnippet, TravelBuddyPreferences, TravelBuddyProfile, AlternativeSuggestion, LocalVibe, GroundingSource, VibeSearchResult, DestinationSuggestion, RealTimeSuggestion, GamificationProfile, AIVoyageMission, SuperServiceData, TripMemory, SocialPostSuggestion, LocalProfile, HangoutSuggestion, CoworkingSpace, Badge, BudgetOptimizationSuggestion, AIHomeSuggestion, FlightStatus, SocialReel, AIDiscoveryData, TravelStory, TravelTrend } from '../types';
+import { Flight, Stay, Car, ApiParams, ItineraryPlan, Checklist, DailyPlan, MapMarker, TravelInsuranceQuote, NearbyAttraction, ChatMessage, UserProfile, SavedTrip, SearchResult, WeatherForecast, ItinerarySnippet, TravelBuddyPreferences, TravelBuddyProfile, AlternativeSuggestion, LocalVibe, GroundingSource, VibeSearchResult, DestinationSuggestion, RealTimeSuggestion, GamificationProfile, AIVoyageMission, SuperServiceData, TripMemory, SocialPostSuggestion, LocalProfile, HangoutSuggestion, CoworkingSpace, Badge, BudgetOptimizationSuggestion, AIHomeSuggestion, FlightStatus, SocialReel, AIDiscoveryData, WandergramPost, TravelTrend } from '../types';
 
 // The GoogleGenAI constructor will now throw an error if API_key is not set, which is the correct behavior.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -1900,22 +1901,23 @@ export const getFlightStatus = async (flightNumber: string): Promise<FlightStatu
     }
 };
 
-export const getAIDiscoverySuggestions = async (stories: TravelStory[], userProfile: UserProfile): Promise<AIDiscoveryData> => {
-    const prompt = `You are a sophisticated AI travel analyst for a social travel app called FlyWise. Your task is to analyze all available travel stories and a user's profile to generate personalized discovery suggestions.
+// FIX: Updated function to accept WandergramPost[] and adjusted prompt and data mapping accordingly.
+export const getAIDiscoverySuggestions = async (posts: WandergramPost[], userProfile: UserProfile): Promise<AIDiscoveryData> => {
+    const prompt = `You are a sophisticated AI travel analyst for a social travel app called FlyWise. Your task is to analyze all available Wandergram posts and a user's profile to generate personalized discovery suggestions.
 
     **User Profile for Personalization:**
     - Favorite Destinations: ${userProfile.favoriteDestinations.join(', ') || 'None specified'}
     - Budget: Max hotel price per night is around $${userProfile.budget.hotelMaxPrice || 'any'}.
     - Interests (inferred from favorites): General sightseeing, culture.
 
-    **All Available Travel Stories (JSON format):**
-    ${JSON.stringify(stories.map(s => ({id: s.id, title: s.title, likes: s.likes, locationTags: s.locationTags, estimatedCost: s.estimatedCost, createdAt: s.createdAt})))}
+    **All Available Wandergram Posts (JSON format):**
+    ${JSON.stringify(posts.map(p => ({id: p.id, user: p.user.name, caption: p.caption, location: p.location, likes: p.likes, createdAt: p.createdAt, imageUrl: p.imageUrl})))}
 
     **Your Task:**
-    Based on the user profile and the provided stories, generate the following curated lists:
+    Based on the user profile and the provided posts, generate the following curated lists:
     1.  **Trending Destinations:** Identify 3-4 destinations that are currently popular. Consider a combination of high 'likes', recent 'createdAt' dates, and multiple posts about the same location. Pick a representative image from one of the posts.
-    2.  **Hidden Gems:** Identify 2-3 story IDs for posts about unique or less-common destinations that still have high engagement (good like count). These are places off the beaten path.
-    3.  **For You (Recommendations):** Identify 2-3 story IDs for posts that are a strong match for the user's personal preferences (favorite destinations, budget).
+    2.  **Hidden Gems:** Identify 2-3 post IDs for posts about unique or less-common destinations that still have high engagement (good like count). These are places off the beaten path.
+    3.  **For You (Recommendations):** Identify 2-3 post IDs for posts that are a strong match for the user's personal preferences (favorite destinations, budget).
 
     Return the results in the specified JSON format.`;
 
@@ -2032,5 +2034,26 @@ export const generateStorySummary = async (title: string, content: string): Prom
         });
     } catch (error) {
         throw handleApiError(error, "Could not generate a summary for this story.");
+    }
+};
+
+export const chatAboutImage = async (base64Image: string, mimeType: string, question: string): Promise<string> => {
+    const prompt = "You are a helpful and knowledgeable travel assistant. A user has provided an image and is asking a question about it. Provide a concise and informative answer based on the visual information. If you cannot determine the answer from the image, say so politely. Do not invent information. User's question: " + question;
+    
+    try {
+        return await withRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: {
+                    parts: [
+                        { inlineData: { data: base64Image, mimeType: mimeType } },
+                        { text: prompt }
+                    ]
+                },
+            });
+            return response.text;
+        });
+    } catch (error) {
+        throw handleApiError(error, "I'm having trouble analyzing the image right now. Please try again later.");
     }
 };

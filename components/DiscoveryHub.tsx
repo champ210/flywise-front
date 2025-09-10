@@ -1,24 +1,20 @@
 import React from 'react';
-import { TravelStory, AIDiscoveryData, UserProfile } from '../types';
-import StoryCard from './StoryCard';
+import { WandergramPost, AIDiscoveryData } from '../types';
+import WandergramPostComponent from './WandergramPost';
 import { Icon } from './Icon';
 
 interface DiscoveryHubProps {
-  stories: TravelStory[];
+  posts: WandergramPost[];
   discoveryData: AIDiscoveryData | null;
   isLoading: boolean;
-  onUpdateStory: (story: TravelStory) => void;
+  onUpdatePost: (post: WandergramPost) => void;
   onEarnPoints: (points: number, badgeId?: string) => void;
+  onAddComment: (postId: string, commentText: string) => void;
+  onAskAi: (post: WandergramPost) => void;
 }
 
 const DiscoveryCardSkeleton: React.FC = () => (
-    <div className="flex-shrink-0 w-64 h-40 bg-white rounded-lg p-3 shadow-sm border border-slate-200 flex flex-col justify-between animate-shimmer">
-        <div>
-            <div className="h-4 bg-slate-300 rounded w-3/4"></div>
-            <div className="h-3 bg-slate-300 rounded w-1/2 mt-2"></div>
-        </div>
-        <div className="h-8 bg-slate-300 rounded-full w-24"></div>
-    </div>
+    <div className="flex-shrink-0 w-64 h-40 bg-slate-200 rounded-lg animate-shimmer"></div>
 );
 
 const TrendingCard: React.FC<{ trend: AIDiscoveryData['trendingDestinations'][0] }> = ({ trend }) => (
@@ -32,14 +28,14 @@ const TrendingCard: React.FC<{ trend: AIDiscoveryData['trendingDestinations'][0]
     </div>
 );
 
-const DiscoveryHub: React.FC<DiscoveryHubProps> = ({ stories, discoveryData, isLoading, onUpdateStory, onEarnPoints }) => {
+const DiscoveryHub: React.FC<DiscoveryHubProps> = ({ posts, discoveryData, isLoading, onEarnPoints, onAddComment, onAskAi }) => {
     
-    const hiddenGemsStories = discoveryData?.hiddenGems.map(id => stories.find(s => s.id === id)).filter(Boolean) as TravelStory[];
-    const recommendedStories = discoveryData?.recommendations.map(id => stories.find(s => s.id === id)).filter(Boolean) as TravelStory[];
+    const hiddenGemsPosts = discoveryData?.hiddenGems.map(id => posts.find(p => p.id === id)).filter(Boolean) as WandergramPost[];
+    const recommendedPosts = discoveryData?.recommendations.map(id => posts.find(p => p.id === id)).filter(Boolean) as WandergramPost[];
 
     if (isLoading) {
         return (
-            <div className="mb-8 space-y-6">
+            <div className="space-y-6">
                  <div>
                     <h3 className="text-xl font-bold text-slate-800 mb-3 flex items-center"><Icon name="chart-bar" className="h-6 w-6 mr-2 text-blue-500" /> Trending Now</h3>
                     <div className="flex space-x-4 overflow-x-auto pb-4 custom-scrollbar">
@@ -53,33 +49,33 @@ const DiscoveryHub: React.FC<DiscoveryHubProps> = ({ stories, discoveryData, isL
     if (!discoveryData) return null;
 
     return (
-        <div className="mb-8 space-y-8 animate-fade-in-up">
+        <div className="space-y-8 animate-fade-in-up">
             {/* Trending Destinations */}
             {discoveryData.trendingDestinations.length > 0 && (
                 <div>
                     <h3 className="text-xl font-bold text-slate-800 mb-3 flex items-center"><Icon name="chart-bar" className="h-6 w-6 mr-2 text-blue-500" /> Trending Now</h3>
-                    <div className="flex space-x-4 overflow-x-auto pb-4 custom-scrollbar">
+                    <div className="flex space-x-4 overflow-x-auto pb-4 custom-scrollbar -mx-4 px-4">
                         {discoveryData.trendingDestinations.map((trend, i) => <TrendingCard key={i} trend={trend} />)}
                     </div>
                 </div>
             )}
             
             {/* Hidden Gems */}
-            {hiddenGemsStories.length > 0 && (
+            {hiddenGemsPosts.length > 0 && (
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center"><Icon name="sparkles" className="h-6 w-6 mr-2 text-amber-500" /> Hidden Gems</h3>
                     <div className="space-y-6">
-                        {hiddenGemsStories.map(story => <StoryCard key={story.id} story={story} onUpdateStory={onUpdateStory} onEarnPoints={onEarnPoints} />)}
+                        {hiddenGemsPosts.map(post => <WandergramPostComponent key={post.id} post={post} onAskAi={onAskAi} onAddComment={onAddComment} onEarnPoints={onEarnPoints} />)}
                     </div>
                 </div>
             )}
             
              {/* For You */}
-            {recommendedStories.length > 0 && (
+            {recommendedPosts.length > 0 && (
                  <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center"><Icon name="user" className="h-6 w-6 mr-2 text-indigo-500" /> For You</h3>
                      <div className="space-y-6">
-                        {recommendedStories.map(story => <StoryCard key={story.id} story={story} onUpdateStory={onUpdateStory} onEarnPoints={onEarnPoints} />)}
+                        {recommendedPosts.map(post => <WandergramPostComponent key={post.id} post={post} onAskAi={onAskAi} onAddComment={onAddComment} onEarnPoints={onEarnPoints} />)}
                     </div>
                 </div>
             )}

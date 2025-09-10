@@ -1,5 +1,3 @@
-
-
 export interface PricePrediction {
   recommendation: 'Wait' | 'Buy Now';
   reason: string;
@@ -825,6 +823,41 @@ export interface FlightStatus {
   waypoints?: Waypoint[];
 }
 
+// For Wandergram Feature
+export interface WandergramComment {
+  id: string;
+  user: {
+    name: string;
+    avatarUrl: string;
+  };
+  text: string;
+  createdAt: string; // ISO string
+}
+
+export interface WandergramPost {
+  id: string;
+  user: {
+    name: string;
+    avatarUrl: string;
+  };
+  imageUrl: string;
+  caption: string;
+  location?: string;
+  likes: number;
+  comments: WandergramComment[];
+  createdAt: string; // ISO string
+}
+
+export interface WandergramStory {
+    id: string;
+    user: {
+        name: string;
+        avatarUrl: string;
+    };
+    imageUrl: string; // The content of the story
+    viewed: boolean;
+}
+
 // For AI Discovery Layer
 export interface AIDiscoveryData {
   trendingDestinations: {
@@ -832,10 +865,10 @@ export interface AIDiscoveryData {
     image: string; // URL from a related story
     reason: string;
   }[];
-  hiddenGems: string[]; // Array of TravelStory IDs
-  recommendations: string[]; // Array of TravelStory IDs
+  hiddenGems: WandergramPost['id'][]; // Array of WandergramPost IDs
+  recommendations: WandergramPost['id'][]; // Array of WandergramPost IDs
 }
-// FIX: Add missing TravelTrend and SocialProof types
+
 // For Travel Trend Radar
 export interface SocialProof {
   platform: 'TikTok' | 'Instagram' | 'Booking' | 'FlyWise';
@@ -851,4 +884,22 @@ export interface TravelTrend {
   monthlyGrowth: number; // Percentage
   socialProof: SocialProof[];
   personalizationReason: string;
+}
+
+// For Wandergram Chat
+export interface WandergramChatMessage {
+  id: string;
+  senderId: string; // 'currentUser' or the other user's ID
+  text: string;
+  createdAt: string; // ISO string
+}
+
+export interface WandergramConversation {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string;
+  };
+  messages: WandergramChatMessage[];
 }

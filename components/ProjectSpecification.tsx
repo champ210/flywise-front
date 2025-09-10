@@ -72,8 +72,9 @@ const ProjectSpecification: React.FC = () => {
             try {
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
-                if (navigator.msSaveBlob) { // IE 10+
-                    navigator.msSaveBlob(blob, 'FlyWise-AI-Budget.csv');
+                // FIX: Cast `navigator` to `any` to allow access to the non-standard `msSaveBlob` property for Internet Explorer compatibility, resolving TypeScript errors.
+                if ((navigator as any).msSaveBlob) { // IE 10+
+                    (navigator as any).msSaveBlob(blob, 'FlyWise-AI-Budget.csv');
                 } else {
                     const url = URL.createObjectURL(blob);
                     link.setAttribute('href', url);

@@ -18,7 +18,7 @@ const CarCard: React.FC<CarCardProps> = ({ car, onBookCar }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden border border-slate-200 flex flex-col sm:flex-row">
+    <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden border border-slate-200 flex flex-col sm:flex-row">
       <div className="sm:w-1/3 h-48 sm:h-auto bg-slate-100 flex items-center justify-center">
         <img
           className="w-full h-full object-cover"
@@ -28,8 +28,8 @@ const CarCard: React.FC<CarCardProps> = ({ car, onBookCar }) => {
       </div>
       <div className="flex flex-col justify-between flex-1">
         {car.rankingReason && (
-            <div className="bg-green-100 text-green-800 text-xs font-semibold px-4 py-2 flex items-center border-b border-green-200">
-                <Icon name="sparkles" className="h-4 w-4 mr-2 text-green-600" />
+            <div className="bg-emerald-50 text-emerald-800 text-xs font-semibold px-4 py-2 flex items-center border-b border-emerald-200">
+                <Icon name="sparkles" className="h-4 w-4 mr-2 text-emerald-600" />
                 AI Recommendation: {car.rankingReason}
             </div>
         )}

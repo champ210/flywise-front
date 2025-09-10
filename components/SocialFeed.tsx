@@ -1,69 +1,53 @@
-
-
 import React, { useState, useEffect } from 'react';
-import { TravelStory, UserProfile, AIDiscoveryData } from '../types';
-import StoryCard from './StoryCard';
+import { WandergramPost, UserProfile, AIDiscoveryData } from '../types';
 import DiscoveryHub from './DiscoveryHub';
 import { getAIDiscoverySuggestions } from '../services/geminiService';
 import { Icon } from './Icon';
 
 interface SocialFeedProps {
-  stories: TravelStory[];
+  posts: WandergramPost[];
   userProfile: UserProfile;
-  onUpdateStory: (story: TravelStory) => void;
+  onUpdatePost: (post: WandergramPost) => void;
   onEarnPoints: (points: number, badgeId?: string) => void;
+  onAddComment: (postId: string, commentText: string) => void;
+  onAskAi: (post: WandergramPost) => void;
 }
 
-const SocialFeed: React.FC<SocialFeedProps> = ({ stories, userProfile, onUpdateStory, onEarnPoints }) => {
+const SocialFeed: React.FC<SocialFeedProps> = ({ posts, userProfile, onUpdatePost, onEarnPoints, onAddComment, onAskAi }) => {
   const [discoveryData, setDiscoveryData] = useState<AIDiscoveryData | null>(null);
-  const [isLoadingDiscovery, setIsLoadingDiscovery] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchDiscoveryData = async () => {
-      setIsLoadingDiscovery(true);
+      setIsLoading(true);
       try {
-        const data = await getAIDiscoverySuggestions(stories, userProfile);
+        const data = await getAIDiscoverySuggestions(posts, userProfile);
         setDiscoveryData(data);
       } catch (error) {
         console.error("Failed to fetch discovery data:", error);
       } finally {
-        setIsLoadingDiscovery(false);
+        setIsLoading(false);
       }
     };
     
-    if (stories.length > 0) {
+    if (posts.length > 0) {
         fetchDiscoveryData();
     } else {
-        setIsLoadingDiscovery(false);
+        setIsLoading(false);
     }
-  }, [stories, userProfile]);
+  }, [posts, userProfile]);
 
   return (
-    <div className="max-w-2xl mx-auto p-2 sm:p-4 space-y-8">
-       <div className="text-center">
-            <Icon name="sparkles" className="h-12 w-12 text-blue-600 mx-auto" />
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-800">AI Discovery Feed</h2>
-            <p className="mt-2 text-md text-slate-600 max-w-2xl mx-auto">
-                Trending destinations, hidden gems, and stories picked just for you.
-            </p>
-      </div>
-      
+    <div className="py-6 space-y-8">
       <DiscoveryHub 
-        stories={stories}
+        posts={posts}
         discoveryData={discoveryData}
-        isLoading={isLoadingDiscovery}
-        onUpdateStory={onUpdateStory}
+        isLoading={isLoading}
+        onUpdatePost={onUpdatePost}
         onEarnPoints={onEarnPoints}
+        onAddComment={onAddComment}
+        onAskAi={onAskAi}
       />
-      
-      <div className="border-t border-slate-200 pt-8">
-          <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">Chronological Feed</h3>
-          <div className="space-y-8">
-            {stories.map(story => (
-                <StoryCard key={story.id} story={story} onUpdateStory={onUpdateStory} onEarnPoints={onEarnPoints} />
-            ))}
-          </div>
-      </div>
     </div>
   );
 };
