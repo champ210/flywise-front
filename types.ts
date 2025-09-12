@@ -1,3 +1,17 @@
+// This file contains all the type definitions for the application.
+// It remains largely the same as the logic is unchanged,
+// but IconProps will be updated for react-native-svg compatibility.
+
+export interface IconProps {
+  name?: string;
+  style?: any; // In React Native, style can be an object or an array of objects
+  className?: string; // FIX: Add className for web compatibility
+  color?: string; // For react-native-svg fill/stroke
+  width?: number | string;
+  height?: number | string;
+}
+
+// All other interfaces from the original file are included below...
 export interface PricePrediction {
   recommendation: 'Wait' | 'Buy Now';
   reason: string;
@@ -7,16 +21,8 @@ export interface Flight {
   type: 'flight';
   airline: string;
   flightNumber: string;
-  departure: {
-    airport: string;
-    city: string;
-    scheduledTime: string;
-  };
-  arrival: {
-    airport: string;
-    city: string;
-    scheduledTime: string;
-  };
+  departureAirport: string;
+  arrivalAirport: string;
   departureTime: string;
   arrivalTime: string;
   duration: string;
@@ -29,6 +35,8 @@ export interface Flight {
   provider?: string;
   rankingScore?: number;
   rankingReason?: string;
+  fareRules?: string;
+  simplifiedFareRules?: string;
 }
 
 export interface UserReview {
@@ -83,20 +91,20 @@ export interface AlternativeSuggestion {
   type: 'flight' | 'stay';
   originalLocation: string;
   alternativeLocationName: string;
-  reason: string;
+  reason: string; // Why this is a good alternative
   estimatedCostSaving?: string;
   estimatedTimeDifference?: string;
 }
 
 // For multi-part chat queries
 export interface ItinerarySuggestion {
-  name: string;
-  description: string;
+    name: string;
+    description: string;
 }
 
 export interface ItinerarySnippet {
-  destination: string;
-  suggestions: ItinerarySuggestion[];
+    destination: string;
+    suggestions: ItinerarySuggestion[];
 }
 
 // For Real-Time Adaptive Concierge
@@ -155,11 +163,11 @@ export interface ItineraryRequestParams {
 }
 
 export interface ApiParams {
-  analyzedQuery: string;
-  flight_search_params?: FlightSearchParams;
-  hotel_search_params?: HotelSearchParams;
-  car_search_params?: CarSearchParams;
-  itinerary_request?: ItineraryRequestParams;
+    analyzedQuery: string;
+    flight_search_params?: FlightSearchParams;
+    hotel_search_params?: HotelSearchParams;
+    car_search_params?: CarSearchParams;
+    itinerary_request?: ItineraryRequestParams;
 }
 
 // Types for the Itinerary Planner
@@ -200,28 +208,32 @@ export interface SavedTrip {
   type: 'itinerary' | 'search';
   data: ItineraryPlan | SearchResult[];
   createdAt: string;
+  startDate?: string; // ISO string for itinerary start
+  endDate?: string; // ISO string for itinerary end
+  flightNumber?: string;
+  documents?: DocumentScanResult[];
 }
 
 // Types for the Travel Checklist feature
 export interface GroundingSource {
-  uri: string;
-  title: string;
+    uri: string;
+    title: string;
 }
 
 export interface ChecklistItem {
-  item: string;
-  checked: boolean;
+    item: string;
+    checked: boolean;
 }
 
 export interface ChecklistDocuments {
-  items: ChecklistItem[];
-  sources?: GroundingSource[];
+    items: ChecklistItem[];
+    sources?: GroundingSource[];
 }
 
 export interface Checklist {
-  packingList: ChecklistItem[];
-  documents: ChecklistDocuments;
-  localEssentials: ChecklistItem[];
+    packingList: ChecklistItem[];
+    documents: ChecklistDocuments;
+    localEssentials: ChecklistItem[];
 }
 
 // Types for Map View feature
@@ -264,8 +276,19 @@ export interface LocalVibe {
 
 // Types for Currency Converter
 export type ExchangeRates = {
-  [currencyCode: string]: number;
+    [currencyCode: string]: number;
 };
+
+// For Wallet
+export interface PaymentMethod {
+  id: string;
+  type: 'card' | 'paypal';
+  last4?: string; // For card
+  expiry?: string; // For card, e.g., "08/25"
+  brand?: 'visa' | 'mastercard' | 'other'; // For card
+  email?: string; // For PayPal
+  isPrimary?: boolean;
+}
 
 // For User Profile
 export interface UserProfile {
@@ -273,11 +296,14 @@ export interface UserProfile {
   minHotelStars: number; // 0 for any
   preferredCarTypes: ('Sedan' | 'SUV' | 'Luxury' | 'Van' | 'Electric')[];
   favoriteDestinations: string[];
+  interests: string[];
   budget: {
     flightMaxPrice: number | '';
     hotelMaxPrice: number | '';
     carMaxPrice: number | '';
   };
+  gamificationProfile?: GamificationProfile;
+  paymentMethods: PaymentMethod[];
 }
 
 // Types for Weather Forecast
@@ -361,19 +387,19 @@ export interface CommunityPost {
 }
 
 export interface CommunityAnswer {
-  id: string;
-  author: CommunityMember;
-  content: string;
-  createdAt: string; // ISO string
+    id: string;
+    author: CommunityMember;
+    content: string;
+    createdAt: string; // ISO string
 }
 
 export interface CommunityQuestion {
-  id: string;
-  author: CommunityMember;
-  question: string;
-  createdAt: string; // ISO string
-  answers: CommunityAnswer[];
-  aiSummary?: string;
+    id: string;
+    author: CommunityMember;
+    question: string;
+    createdAt: string; // ISO string
+    answers: CommunityAnswer[];
+    aiSummary?: string;
 }
 
 export interface Community {
@@ -450,7 +476,7 @@ export interface CarBookingConfirmation {
 
 
 // For Group Planning
-export interface GroupTripMember extends CommunityMember { }
+export interface GroupTripMember extends CommunityMember {}
 
 export interface GroupTripTask {
   id: string;
@@ -466,7 +492,7 @@ export interface VotingOption {
 }
 
 export interface GroupTripPoll {
-  id: string;
+  id:string;
   question: string;
   options: VotingOption[];
   isClosed?: boolean;
@@ -527,18 +553,18 @@ export interface VoyageurLevel {
 }
 
 export interface PassportStamp {
-  country: string;
-  city: string;
-  date: string; // ISO string
-  crestUrl: string; // A URL to a crest/stamp image
+    country: string;
+    city: string;
+    date: string; // ISO string
+    crestUrl: string; // A URL to a crest/stamp image
 }
 
 export interface AIVoyageMission {
-  title: string;
-  description: string;
-  destination: string;
-  badgeToUnlock: string; // ID of the badge
-  pointsToEarn: number;
+    title: string;
+    description: string;
+    destination: string;
+    badgeToUnlock: string; // ID of the badge
+    pointsToEarn: number;
 }
 
 export interface GamificationProfile {
@@ -563,7 +589,7 @@ export interface DestinationSuggestion {
 }
 
 export interface VibeSearchResult {
-  images?: (string | undefined)[]; // Array of base64 encoded image strings
+  images: string[]; // Array of base64 encoded image strings
   destinations: DestinationSuggestion[];
 }
 
@@ -607,10 +633,10 @@ export interface LocalProfile {
 }
 
 export interface HangoutSuggestion {
-  title: string;
-  description: string;
-  location: string;
-  estimatedCost: string; // e.g., "Free", "$10-20", etc.
+    title: string;
+    description: string;
+    location: string;
+    estimatedCost: string; // e.g., "Free", "$10-20", etc.
 }
 
 // For Super Services Hub
@@ -621,72 +647,72 @@ export interface ServiceApp {
 }
 
 export interface MenuItem {
-  name: string;
-  price: string; // e.g., "$12.99"
-  description: string;
+    name: string;
+    price: string; // e.g., "$12.99"
+    description: string;
 }
 
 export interface Restaurant {
-  id: string;
-  name: string;
-  cuisine: string[];
-  rating: number;
-  priceRange: '$' | '$$' | '$$$' | '$$$$';
-  deliveryTime: string;
-  deliveryFee: number;
-  imageUrl: string;
-  menu: MenuItem[];
-  provider: string; // e.g., "Uber Eats"
+    id: string;
+    name: string;
+    cuisine: string[];
+    rating: number;
+    priceRange: '$' | '$$' | '$$$' | '$$$$';
+    deliveryTime: string;
+    deliveryFee: number;
+    imageUrl: string;
+    menu: MenuItem[];
+    provider: string; // e.g., "Uber Eats"
 }
 
 export interface RideOption {
-  id: string;
-  serviceName: string;
-  serviceLogoUrl: string;
-  vehicleType: string; // e.g., "Standard", "XL", "Luxury"
-  eta: string; // e.g., "5 min"
-  estimatedPrice: number;
-  passengerCapacity: number;
+    id: string;
+    serviceName: string;
+    serviceLogoUrl: string;
+    vehicleType: string; // e.g., "Standard", "XL", "Luxury"
+    eta: string; // e.g., "5 min"
+    estimatedPrice: number;
+    passengerCapacity: number;
 }
 
 export interface FoodSuggestion {
-  restaurant: Restaurant;
-  reason: string; // e.g., "Perfect for a quick, healthy lunch near you."
+    restaurant: Restaurant;
+    reason: string; // e.g., "Perfect for a quick, healthy lunch near you."
 }
 
 export interface RideSuggestion {
-  destination: string; // e.g., "Eiffel Tower"
-  reason: string; // e.g., "Best way to get to your next itinerary item."
-  options: RideOption[];
+    destination: string; // e.g., "Eiffel Tower"
+    reason: string; // e.g., "Best way to get to your next itinerary item."
+    options: RideOption[];
 }
 
 export interface SuperServiceData {
-  availableApps: ServiceApp[];
-  restaurants: Restaurant[];
-  foodSuggestions: FoodSuggestion[];
-  rideSuggestion: RideSuggestion | null;
-  smartCombo: {
-    title: string;
-    description: string;
-    restaurant: Restaurant;
-    ride: RideOption;
-  } | null;
+    availableApps: ServiceApp[];
+    restaurants: Restaurant[];
+    foodSuggestions: FoodSuggestion[];
+    rideSuggestion: RideSuggestion | null;
+    smartCombo: {
+        title: string;
+        description: string;
+        restaurant: Restaurant;
+        ride: RideOption;
+    } | null;
 }
 
 export interface FoodOrderConfirmation {
-  orderId: string;
-  restaurant: Restaurant;
-  totalPaid: number;
-  estimatedDelivery: string;
-  coinsEarned: number;
+    orderId: string;
+    restaurant: Restaurant;
+    totalPaid: number;
+    estimatedDelivery: string;
+    coinsEarned: number;
 }
 
 export interface RideBookingConfirmation {
-  bookingId: string;
-  ride?: RideOption;
-  destination?: string;
-  totalPaid?: number;
-  coinsEarned: number;
+    bookingId: string;
+    ride: RideOption;
+    destination: string;
+    totalPaid: number;
+    coinsEarned: number;
 }
 
 // For Storytelling & Memories
@@ -706,8 +732,8 @@ export interface TripMemory {
 
 // For Social Sharing
 export interface SocialPostSuggestion {
-  caption: string;
-  hashtags: string; // A single string of space-separated hashtags, e.g., "#travel #kyoto #japan"
+    caption: string;
+    hashtags: string; // A single string of space-separated hashtags, e.g., "#travel #kyoto #japan"
 }
 
 // For AI Social Reel Generator
@@ -726,7 +752,7 @@ export interface SocialReel {
 
 
 // For Coworking Spaces
-export interface CoworkingReview extends UserReview { }
+export interface CoworkingReview extends UserReview {}
 
 export interface CoworkingSpace {
   id: string;
@@ -774,11 +800,11 @@ export interface AIHomeSuggestion {
 
 // For Budget Optimizer
 export interface BudgetOptimizationSuggestion {
-  type: 'Stay' | 'Activity' | 'Transport' | 'Food';
-  originalItem: string;
-  suggestedAlternative: string;
-  reason: string;
-  estimatedSavings: number;
+    type: 'Stay' | 'Activity' | 'Transport' | 'Food';
+    originalItem: string;
+    suggestedAlternative: string;
+    reason: string;
+    estimatedSavings: number;
 }
 
 // For Flight Tracker
@@ -820,7 +846,7 @@ export interface FlightStatus {
     type: string;
     registration: string | null;
   };
-  live: {
+  livePosition: {
     latitude: number;
     longitude: number;
     altitude: number; // in feet
@@ -857,13 +883,13 @@ export interface WandergramPost {
 }
 
 export interface WandergramStory {
-  id: string;
-  user: {
-    name: string;
-    avatarUrl: string;
-  };
-  imageUrl: string; // The content of the story
-  viewed: boolean;
+    id: string;
+    user: {
+        name: string;
+        avatarUrl: string;
+    };
+    imageUrl: string; // The content of the story
+    viewed: boolean;
 }
 
 // For AI Discovery Layer
@@ -880,7 +906,7 @@ export interface AIDiscoveryData {
 // For Travel Trend Radar
 export interface SocialProof {
   platform: 'TikTok' | 'Instagram' | 'Booking' | 'FlyWise';
-  value: string; // e.g., "2.1M views", "8.5/10", "Trending"
+  value: string;
 }
 
 export interface TravelTrend {
@@ -910,4 +936,65 @@ export interface WandergramConversation {
     avatarUrl: string;
   };
   messages: WandergramChatMessage[];
+}
+
+// For In-Trip Companion
+export interface DocumentScanResult {
+  documentType: 'Flight Itinerary' | 'Hotel Confirmation' | 'Rental Car' | 'Other';
+  confirmationNumber?: string;
+  passengerName?: string;
+  details: {
+    [key: string]: string;
+  };
+}
+
+export interface TranslationResult {
+  originalText: string;
+  translatedText: string;
+}
+
+export interface TripIdea {
+  destination: string;
+  interests: string;
+}
+
+// For Local Experiences
+export type ExperienceCategory = 'Food' | 'Adventure' | 'Culture' | 'Wellness';
+
+export interface ExperienceReview {
+  id: string;
+  user: {
+    name: string;
+    avatarUrl: string;
+  };
+  rating: number; // 1-5
+  comment: string;
+  createdAt: string; // ISO string
+}
+
+export interface Experience {
+  id: string;
+  title: string;
+  description: string;
+  category: ExperienceCategory;
+  location: string;
+  images: string[]; // URLs
+  price: number; // Per person in USD
+  duration: string; // e.g., "4 hours", "Full day"
+  groupSize: {
+    min: number;
+    max: number;
+  };
+  languages: string[];
+  host: {
+    id: string;
+    name: string;
+    avatarUrl: string;
+    bio: string;
+  };
+  availability: {
+    [date: string]: number; // "YYYY-MM-DD": spots left
+  };
+  reviews: ExperienceReview[];
+  rating: number; // Calculated average
 }

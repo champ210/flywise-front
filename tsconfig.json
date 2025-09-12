@@ -23,6 +23,7 @@
         "./*"
       ]
     },
-    "noEmit": false
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   }
 }

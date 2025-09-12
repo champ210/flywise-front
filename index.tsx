@@ -1,14 +1,14 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { Provider } from 'react-redux';
+import { AppRegistry } from 'react-native';
+import App from './App';
 
-import { store } from '@/src/store';
-import App from '@/src/App';
+// Register the main component
+AppRegistry.registerComponent('FlyWise.AI', () => App);
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
-}
+// Start the application
+AppRegistry.runApplication('FlyWise.AI', {
+  rootTag: document.getElementById('root'),
+});
+
 
 // Register Service Worker for offline capabilities
 if ('serviceWorker' in navigator) {
@@ -22,13 +22,3 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
-
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <App />
-    </Provider>,
-  </React.StrictMode>
-);
