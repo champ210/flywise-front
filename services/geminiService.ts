@@ -3,8 +3,31 @@ import { GoogleGenAI, Type } from "@google/genai";
 // FIX: Add TravelTrend type to imports
 import { Flight, Stay, Car, ApiParams, ItineraryPlan, Checklist, DailyPlan, MapMarker, TravelInsuranceQuote, NearbyAttraction, ChatMessage, UserProfile, SavedTrip, SearchResult, WeatherForecast, ItinerarySnippet, TravelBuddyPreferences, TravelBuddyProfile, AlternativeSuggestion, LocalVibe, GroundingSource, VibeSearchResult, DestinationSuggestion, RealTimeSuggestion, GamificationProfile, AIVoyageMission, SuperServiceData, TripMemory, SocialPostSuggestion, LocalProfile, HangoutSuggestion, CoworkingSpace, Badge, BudgetOptimizationSuggestion, AIHomeSuggestion, FlightStatus, SocialReel, AIDiscoveryData, WandergramPost, TravelTrend, DocumentScanResult, TranslationResult, GroupTripPoll, TripIdea } from '../types';
 
-// The GoogleGenAI constructor will now throw an error if API_key is not set, which is the correct behavior.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
+
+const getAiClient = (): GoogleGenAI => {
+    if (ai) {
+        return ai;
+    }
+
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "YOUR_API_KEY_HERE") {
+        const errorElement = document.createElement('div');
+        errorElement.innerHTML = `
+            <div style="padding: 2rem; text-align: center; font-family: sans-serif; background-color: #fffbe6; color: #7a4f01; border: 1px solid #fde68a;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Configuration Error</h2>
+                <p>The Google Gemini <strong>GEMINI_API_KEY</strong> is missing. Please update the <strong>env.ts</strong> file with your API key.</p>
+                <pre style="background-color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; text-align: left; display: inline-block; margin-top: 1rem;">GEMINI_API_KEY: "YOUR_GEMINI_API_KEY"</pre>
+            </div>
+        `;
+        document.body.innerHTML = '';
+        document.body.appendChild(errorElement);
+        throw new Error("Configuration Error: GEMINI_API_KEY is not defined in env.ts. Please add it.");
+    }
+
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    return ai;
+};
+
 
 /**
  * A helper function to add retry logic with exponential backoff for API calls.
@@ -91,6 +114,10 @@ const handleApiError = (error: unknown, defaultMessage: string): Error => {
         }
         if (error.message.includes("API key not valid")) {
              return new Error("Your API key is invalid or not configured correctly. Please check your setup.");
+        }
+        // This will catch the "Configuration Error: GEMINI_API_KEY is not available" from our lazy loader.
+        if (error.message.includes("Configuration Error")) {
+            return error;
         }
     }
     
@@ -1091,6 +1118,7 @@ const aiDiscoverySchema = {
 
 
 export const getApiParamsFromChat = async (messages: ChatMessage[], userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<ApiParams> => {
+    const ai = getAiClient();
     const prompt = `
         Current Date: ${new Date().toISOString().split('T')[0]}.
         Analyze the following user chat history to determine the correct parameters for flight, hotel, and car rental API calls.
@@ -1120,6 +1148,7 @@ export const getApiParamsFromChat = async (messages: ChatMessage[], userProfile:
 };
 
 export const getAlternativeSuggestions = async (messages: ChatMessage[], userProfile: UserProfile): Promise<AlternativeSuggestion[]> => {
+    const ai = getAiClient();
     const prompt = `Based on this user's request and profile, suggest up to 3 alternative destinations (airports or cities) that might be cheaper, more aligned with their interests, or offer a better experience.
     User Profile: ${JSON.stringify(userProfile)}
     Chat History:
@@ -1142,6 +1171,7 @@ export const getAlternativeSuggestions = async (messages: ChatMessage[], userPro
 };
 
 export const getRealTimeSuggestions = async (messages: ChatMessage[], userProfile: UserProfile, latestItinerary: ItineraryPlan, currentLocation: { lat: number, lng: number }): Promise<RealTimeSuggestion[]> => {
+    const ai = getAiClient();
     const prompt = `A user's plan might be disrupted (e.g., rain, closure). Based on their last message, their itinerary, their profile, and their current location, suggest 2-3 specific, real-world alternative activities nearby. Provide real addresses.
     Current Location: ${JSON.stringify(currentLocation)}
     User Profile: ${JSON.stringify(userProfile)}
@@ -1174,6 +1204,7 @@ export const getRealTimeSuggestions = async (messages: ChatMessage[], userProfil
 };
 
 export const generateSearchSummary = async (results: SearchResult[]): Promise<string> => {
+    const ai = getAiClient();
     const hasFlights = results.some(r => r.type === 'flight');
     const hasStays = results.some(r => r.type === 'stay');
     const hasCars = results.some(r => r.type === 'car');
@@ -1202,6 +1233,7 @@ export const generateSearchSummary = async (results: SearchResult[]): Promise<st
 };
 
 export const getItinerarySnippet = async (params: { destination?: string; duration?: number; interests?: string; }): Promise<ItinerarySnippet> => {
+    const ai = getAiClient();
     const prompt = `Generate a short snippet of 2-4 activity suggestions for a trip to ${params.destination} based on these interests: ${params.interests}.`;
     try {
         const response = await withRetry(() => ai.models.generateContent({
@@ -1219,6 +1251,7 @@ export const getItinerarySnippet = async (params: { destination?: string; durati
 };
 
 export const getItinerary = async (destination: string, duration: number, interests: string, budget?: number): Promise<ItineraryPlan> => {
+    const ai = getAiClient();
     const prompt = `Create a detailed ${duration}-day travel itinerary for ${destination}.
     User interests: ${interests}.
     ${budget ? `The user has an approximate budget of $${budget}. Please create the itinerary and a budget breakdown around this amount.` : 'The user has not specified a budget, please estimate a reasonable "mid-range" budget.'}
@@ -1250,6 +1283,7 @@ export const getItinerary = async (destination: string, duration: number, intere
 };
 
 export const getBudgetOptimizations = async (plan: ItineraryPlan): Promise<BudgetOptimizationSuggestion[]> => {
+    const ai = getAiClient();
     const prompt = `Analyze this itinerary and suggest 3-4 specific ways to save money without significantly compromising the experience. For each suggestion, provide the original item, the suggested alternative, a reason, and an estimated saving in USD.
     Itinerary: ${JSON.stringify(plan)}
     `;
@@ -1270,6 +1304,7 @@ export const getBudgetOptimizations = async (plan: ItineraryPlan): Promise<Budge
 };
 
 export const getCoordinatesForActivities = async (itinerary: DailyPlan[]): Promise<MapMarker[]> => {
+    const ai = getAiClient();
     const prompt = `For each activity in this itinerary, find its precise latitude and longitude.
     Itinerary: ${JSON.stringify(itinerary)}
     Return an array of locations.
@@ -1300,6 +1335,7 @@ export const getCoordinatesForActivities = async (itinerary: DailyPlan[]): Promi
 };
 
 export const getWeatherForecast = async (destination: string, duration: number): Promise<WeatherForecast> => {
+    const ai = getAiClient();
     const prompt = `Provide a realistic ${duration}-day weather forecast for ${destination}, starting from tomorrow.`;
     try {
         const searchResponse = await withRetry(() => ai.models.generateContent({
@@ -1327,6 +1363,7 @@ export const getWeatherForecast = async (destination: string, duration: number):
 };
 
 export const getTravelChecklist = async (plan: ItineraryPlan): Promise<Checklist> => {
+    const ai = getAiClient();
     const prompt = `Generate a comprehensive travel checklist for a trip based on this itinerary. Include sections for packing, documents (use Google Search for any specific visa or entry requirements), and local essentials (e.g., specific apps, cash, clothing advice).
     Itinerary: ${JSON.stringify(plan)}
     `;
@@ -1365,6 +1402,7 @@ export const getTravelChecklist = async (plan: ItineraryPlan): Promise<Checklist
 };
 
 export const getInsuranceQuotes = async (plan: ItineraryPlan): Promise<TravelInsuranceQuote[]> => {
+    const ai = getAiClient();
     const prompt = `Generate 3-4 fictional but realistic travel insurance quotes for a trip to ${plan.destination} for ${plan.itinerary.length} days. Include different coverage levels and price points.`;
     try {
         const response = await withRetry(() => ai.models.generateContent({
@@ -1383,6 +1421,7 @@ export const getInsuranceQuotes = async (plan: ItineraryPlan): Promise<TravelIns
 };
 
 export const getNearbyAttractions = async (stayName: string, location: string): Promise<NearbyAttraction[]> => {
+    const ai = getAiClient();
     const prompt = `List 3-5 interesting attractions or points of interest near ${stayName} in ${location}.`;
     try {
         const searchResponse = await withRetry(() => ai.models.generateContent({
@@ -1410,6 +1449,7 @@ export const getNearbyAttractions = async (stayName: string, location: string): 
 };
 
 export const getLocalVibe = async (stayName: string, location: string): Promise<LocalVibe> => {
+    const ai = getAiClient();
     const prompt = `Describe the local "vibe" at night around ${stayName} in ${location}. Focus on safety, atmosphere (lively, quiet, etc.), and types of places open (restaurants, bars, etc.). Use Google Search to ground your answer.`;
     try {
         const response = await withRetry(() => ai.models.generateContent({
@@ -1444,6 +1484,7 @@ export const getLocalVibe = async (stayName: string, location: string): Promise<
 };
 
 export const generateDestinationImages = async (destination: string, duration: number, interests: string, budget?: number): Promise<string[]> => {
+    const ai = getAiClient();
     const prompt = `A cinematic, photorealistic collage of a ${duration}-day trip to ${destination}. Interests: ${interests}. ${budget ? `Budget: around $${budget}.` : ''} Show iconic landmarks and hidden gems.`;
     try {
         const response = await withRetry(() => ai.models.generateImages({
@@ -1461,6 +1502,7 @@ export const generateDestinationImages = async (destination: string, duration: n
 };
 
 export const generateTravelBuddyProfile = async (preferences: TravelBuddyPreferences, userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<TravelBuddyProfile> => {
+    const ai = getAiClient();
     const prompt = `Create a fictional travel buddy profile that would be a great match for a user with these preferences:
     User's Travel Preferences: ${JSON.stringify(userProfile)}.
     User's Saved Trips: ${JSON.stringify(savedTrips)}.
@@ -1482,6 +1524,7 @@ export const generateTravelBuddyProfile = async (preferences: TravelBuddyPrefere
 };
 
 export const generateJointItinerary = async (userProfile: UserProfile, buddyProfile: TravelBuddyProfile, destination: string, duration: number): Promise<ItineraryPlan> => {
+    const ai = getAiClient();
     const prompt = `Create a ${duration}-day travel itinerary for ${destination} that balances the interests of two travelers.
     Traveler 1 (User): ${JSON.stringify(userProfile)}
     Traveler 2 (AI Buddy): ${JSON.stringify(buddyProfile)}
@@ -1512,6 +1555,7 @@ export const generateJointItinerary = async (userProfile: UserProfile, buddyProf
 };
 
 export const chatWithTravelBuddy = async (chatHistory: ChatMessage[], userProfile: UserProfile, buddyProfile: TravelBuddyProfile, jointPlan: ItineraryPlan): Promise<string> => {
+    const ai = getAiClient();
     const prompt = `You are ${buddyProfile.name}, the AI travel buddy. Your personality is defined by: ${JSON.stringify(buddyProfile)}.
     You are chatting with a user about your upcoming trip to ${jointPlan.destination}.
     Your joint itinerary is: ${JSON.stringify(jointPlan)}.
@@ -1532,6 +1576,7 @@ export const chatWithTravelBuddy = async (chatHistory: ChatMessage[], userProfil
 };
 
 export const generateBuddyProfilePicture = async (profile: TravelBuddyProfile): Promise<string> => {
+    const ai = getAiClient();
     const prompt = `Create a realistic, photorealistic portrait of a travel blogger that matches this description. Head and shoulders shot.
     Name: ${profile.name}
     Age: ${profile.age}
@@ -1556,6 +1601,7 @@ export const generateBuddyProfilePicture = async (profile: TravelBuddyProfile): 
 };
 
 export const generateTripMemory = async (plan: ItineraryPlan): Promise<Omit<TripMemory, 'tripId'>> => {
+    const ai = getAiClient();
     const prompt = `Based on this itinerary, generate a creative and nostalgic "Trip Memory".
     Itinerary: ${JSON.stringify(plan)}
     Create a catchy title, a heartfelt summary, and some key stats. Also suggest a music theme and a simplified map route.
@@ -1576,6 +1622,7 @@ export const generateTripMemory = async (plan: ItineraryPlan): Promise<Omit<Trip
 };
 
 export const generateStorySummary = async (title: string, content: string): Promise<{ summary: string; estimatedCost: number; tags: string[] }> => {
+    const ai = getAiClient();
     const prompt = `Analyze this travel story. Provide a one-paragraph summary, estimate a budget for a similar trip, and suggest 3-5 relevant tags.
     Title: ${title}
     Content: ${content}
@@ -1596,6 +1643,7 @@ export const generateStorySummary = async (title: string, content: string): Prom
 };
 
 export const generateVibeSearchIdeas = async (vibe: string): Promise<VibeSearchResult> => {
+    const ai = getAiClient();
     try {
         const imagePromise = withRetry(() => ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
@@ -1624,6 +1672,7 @@ export const generateVibeSearchIdeas = async (vibe: string): Promise<VibeSearchR
 };
 
 export const getAILocalMatches = async (location: string, userProfile: UserProfile, matchType: 'stay' | 'hangout'): Promise<LocalProfile[]> => {
+    const ai = getAiClient();
     const prompt = `Generate 5-8 fictional but realistic profiles for a HomeShare / Local Connections app. The user is searching for a "${matchType}" in "${location}".
     The user's profile is: ${JSON.stringify(userProfile)}.
     The generated profiles should be a good match for the user, with high compatibility scores. Make them diverse in age, interests, and background.
@@ -1646,6 +1695,7 @@ export const getAILocalMatches = async (location: string, userProfile: UserProfi
 };
 
 export const getHangoutSuggestions = async (userProfile: UserProfile, localProfile: LocalProfile): Promise<HangoutSuggestion[]> => {
+    const ai = getAiClient();
     const prompt = `Based on the shared interests of a user and a local, suggest 3 creative and fun hangout ideas in ${localProfile.location}.
     User Profile: ${JSON.stringify(userProfile.interests)}
     Local Profile: ${JSON.stringify(localProfile.interests)}
@@ -1667,6 +1717,7 @@ export const getHangoutSuggestions = async (userProfile: UserProfile, localProfi
 };
 
 export const getAIVoyageMissions = async (profile: GamificationProfile): Promise<AIVoyageMission[]> => {
+    const ai = getAiClient();
     const prompt = `Based on the user's gamification profile, suggest 3 personalized "Voyage Missions" to help them earn points and unlock new badges. The missions should be tailored to their earned badges and play style.
     Profile: ${JSON.stringify(profile)}
     `;
@@ -1687,6 +1738,7 @@ export const getAIVoyageMissions = async (profile: GamificationProfile): Promise
 };
 
 export const getTravelTrends = async (userProfile: UserProfile): Promise<TravelTrend[]> => {
+    const ai = getAiClient();
     const prompt = `Generate a list of 6-8 current, realistic travel trends. Include a mix of categories. For each trend, provide a personalization reason based on the user's profile.
     User Profile: ${JSON.stringify(userProfile)}
     `;
@@ -1716,6 +1768,7 @@ export const getTravelTrends = async (userProfile: UserProfile): Promise<TravelT
 };
 
 export const getSuperServiceData = async (location: string, userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<SuperServiceData> => {
+    const ai = getAiClient();
     const prompt = `Generate a realistic set of "Super Service" data for a user in "${location}".
     User Profile: ${JSON.stringify(userProfile)}
     User's Saved Trips (for context): ${JSON.stringify(savedTrips)}
@@ -1741,6 +1794,7 @@ export const getSuperServiceData = async (location: string, userProfile: UserPro
 };
 
 export const generateSocialPostSuggestion = async (memory: TripMemory): Promise<SocialPostSuggestion> => {
+    const ai = getAiClient();
     const prompt = `Based on this trip memory, generate a creative and engaging social media post with a caption and relevant hashtags.
     Memory: ${JSON.stringify(memory)}
     `;
@@ -1760,6 +1814,7 @@ export const generateSocialPostSuggestion = async (memory: TripMemory): Promise<
 };
 
 export const generateHangoutRequestMessage = async (userProfile: UserProfile, localProfile: LocalProfile, suggestion: HangoutSuggestion): Promise<string> => {
+    const ai = getAiClient();
     const prompt = `Write a friendly, casual, and polite message from a user to a local to request a hangout. The message should sound natural and mention their shared interests as a reason for connecting, as well as the specific hangout idea.
     User's Interests: ${JSON.stringify(userProfile.interests)}
     Local's Name: ${localProfile.name}
@@ -1778,6 +1833,7 @@ export const generateHangoutRequestMessage = async (userProfile: UserProfile, lo
 };
 
 export const getCoworkingSpaces = async (location: string, userProfile: UserProfile): Promise<CoworkingSpace[]> => {
+    const ai = getAiClient();
     const prompt = `Generate a list of 5-8 fictional but realistic coworking spaces in "${location}". For each space, provide an "AI Insight" tailored to a traveler with this profile: ${JSON.stringify(userProfile)}. Also include a creative "Networking Opportunity" for each space.`;
     try {
         const searchResponse = await withRetry(() => ai.models.generateContent({
@@ -1805,6 +1861,7 @@ export const getCoworkingSpaces = async (location: string, userProfile: UserProf
 };
 
 export const getAIHomeSuggestions = async (userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<AIHomeSuggestion[]> => {
+    const ai = getAiClient();
     const prompt = `Based on the user's profile and their saved trips, generate 2 highly relevant "next step" suggestions for their dashboard. These should be actionable and guide the user to a relevant feature in the app.
     User Profile: ${JSON.stringify(userProfile)}
     Saved Trips: ${JSON.stringify(savedTrips)}
@@ -1826,6 +1883,7 @@ export const getAIHomeSuggestions = async (userProfile: UserProfile, savedTrips:
 };
 
 export const getQASummary = async (question: string, answers: string[]): Promise<string> => {
+    const ai = getAiClient();
     const prompt = `Summarize the different viewpoints and key information from the answers to this question.
     Question: "${question}"
     Answers: ${JSON.stringify(answers)}
@@ -1842,6 +1900,7 @@ export const getQASummary = async (question: string, answers: string[]): Promise
 };
 
 export const getFlightStatus = async (flightNumber: string): Promise<FlightStatus> => {
+    const ai = getAiClient();
     const prompt = `Provide a detailed, realistic, real-time flight status for flight number ${flightNumber}. Use Google Search to find real flight data if possible, but generate a realistic fictional flight if not. Include all fields from the schema. Generate a plausible flight path with waypoints.`;
     try {
         const searchResponse = await withRetry(() => ai.models.generateContent({
@@ -1868,6 +1927,7 @@ export const getFlightStatus = async (flightNumber: string): Promise<FlightStatu
 };
 
 export const generateSocialReel = async (plan: ItineraryPlan, images: { mimeType: string; dataUrl: string }[]): Promise<SocialReel> => {
+    const ai = getAiClient();
     const prompt = `Based on this itinerary and these user-provided images, generate a concept for a short social media "reel" video.
     Itinerary: ${JSON.stringify(plan)}
     - Create a catchy title.
@@ -1906,6 +1966,7 @@ export const generateSocialReel = async (plan: ItineraryPlan, images: { mimeType
 };
 
 export const getAIDiscoverySuggestions = async (posts: WandergramPost[], userProfile: UserProfile): Promise<AIDiscoveryData> => {
+    const ai = getAiClient();
     const prompt = `Analyze this feed of Wandergram posts and the user's profile.
     User Profile: ${JSON.stringify(userProfile)}
     Posts: ${JSON.stringify(posts.map(p => ({id: p.id, caption: p.caption, location: p.location})))}
@@ -1929,6 +1990,7 @@ export const getAIDiscoverySuggestions = async (posts: WandergramPost[], userPro
 };
 
 export const chatAboutImage = async (base64Image: string, mimeType: string, prompt: string): Promise<string> => {
+    const ai = getAiClient();
     const imagePart = {
         inlineData: {
             mimeType: mimeType,
@@ -1949,6 +2011,7 @@ export const chatAboutImage = async (base64Image: string, mimeType: string, prom
 };
 
 export const simplifyFareRules = async (fareRules: string): Promise<string> => {
+    const ai = getAiClient();
     const prompt = `
         Summarize the following complex airline fare rules into a single, simple, and easy-to-understand sentence for a traveler.
         Focus on the most important aspects: refundability and change fees.
@@ -1970,6 +2033,7 @@ export const simplifyFareRules = async (fareRules: string): Promise<string> => {
 };
 
 export const parseDocumentFromImage = async (base64Image: string, mimeType: string): Promise<DocumentScanResult> => {
+    const ai = getAiClient();
     const imagePart = { inlineData: { mimeType, data: base64Image } };
     const textPart = { text: "Analyze this image of a travel document (like a flight itinerary or hotel confirmation). Extract all key information and structure it as JSON." };
     try {
@@ -1988,6 +2052,7 @@ export const parseDocumentFromImage = async (base64Image: string, mimeType: stri
 };
 
 export const translateImage = async (base64Image: string, mimeType: string): Promise<TranslationResult> => {
+    const ai = getAiClient();
     const imagePart = { inlineData: { mimeType, data: base64Image } };
     const textPart = { text: "Extract all text from this image. Then, provide an English translation of the extracted text. Return both the original and translated text." };
     try {
@@ -2006,6 +2071,7 @@ export const translateImage = async (base64Image: string, mimeType: string): Pro
 };
 
 export const getCompromiseSuggestion = async (poll: GroupTripPoll, destination: string): Promise<string> => {
+    const ai = getAiClient();
     const prompt = `A travel group is voting on an activity in ${destination} but might be undecided. Based on the poll, suggest a creative compromise activity that combines elements of the existing options or offers a fun alternative everyone might enjoy.
     
     Poll Question: "${poll.question}"
@@ -2026,6 +2092,7 @@ export const getCompromiseSuggestion = async (poll: GroupTripPoll, destination: 
 };
 
 export const getTripIdeasFromImage = async (base64Image: string, mimeType: string, caption: string): Promise<TripIdea> => {
+    const ai = getAiClient();
     const imagePart = { inlineData: { mimeType, data: base64Image } };
     const textPart = { text: `Analyze this image and its caption to identify the travel destination and infer the vibe/interests for a trip. Caption: "${caption}"` };
     try {

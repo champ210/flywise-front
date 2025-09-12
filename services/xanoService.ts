@@ -1,7 +1,5 @@
 import { SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, PassengerDetails, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, WandergramPost, WandergramStory, WandergramConversation, WandergramComment, WandergramChatMessage, Community, MeetupEvent, GroupTrip, Transaction, GamificationProfile, PaymentMethod, Experience } from '../types';
 
-const XANO_BASE_URL = process.env.XANO_BASE_URL;
-
 const TOKEN_KEY = 'flywise_auth_token';
 
 // --- Token Management ---
@@ -34,6 +32,10 @@ export const removeToken = () => {
 // --- API Request Wrapper ---
 
 const apiRequest = async <T>(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<T> => {
+    const isAuthEndpoint = endpoint.startsWith('/auth/');
+    const baseUrl = isAuthEndpoint ? process.env.XANO_AUTH_URL : process.env.XANO_BASE_URL;
+    const urlName = isAuthEndpoint ? 'XANO_AUTH_URL' : 'XANO_BASE_URL';
+
     const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -42,15 +44,13 @@ const apiRequest = async <T>(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    if (!XANO_BASE_URL) {
+    if (!baseUrl || baseUrl.includes("YOUR_XANO")) {
         // Mock API responses for development without a live backend
-        console.warn(`XANO_BASE_URL not set. Using mock API for endpoint: ${method} ${endpoint}`);
+        console.warn(`${urlName} is not configured in env.ts. Falling back to mock API for endpoint: ${method} ${endpoint}`);
         return mockApi(endpoint, method, body) as Promise<T>;
-        // In a real scenario, you'd want to throw an error:
-        // throw new Error("Xano API URL is not configured. Please set XANO_BASE_URL in your environment.");
     }
     
-    const response = await fetch(`${XANO_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${baseUrl}${endpoint}`, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,

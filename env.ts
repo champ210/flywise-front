@@ -1,0 +1,25 @@
+/**
+ * Environment Configuration
+ * 
+ * IMPORTANT:
+ * 1. This file contains sensitive API keys.
+ * 2. If you are using Git, ensure this file is listed in your .gitignore file
+ *    to prevent your secret keys from being committed to version control.
+ */
+export const envConfig = {
+  // Google Gemini API Key
+  GEMINI_API_KEY: "AIzaSyDGd9WnVLOE5pB6RQu19dEdgHBUwNi0ul0",
+  
+  // Xano Backend URLs
+  XANO_AUTH_URL: "https://x8ki-letl-twmt.n7.xano.io/api:eLc0elI2",
+  XANO_BASE_URL: "https://x8ki-letl-twmt.n7.xano.io/api:nUxHhkwI",
+
+  // AviationStack API (for flight status)
+  AVIATION_STACK_API_KEY: "1f21e084ffa44f43648b46d97de1fe82",
+  AVIATION_STACK_URL: "https://api.aviationstack.com/v1/",
+  
+  // Amadeus API (for flight/hotel search)
+  AMADEUS_API_KEY: "6b1lVrRoUW0rEhVFEv1fkcXavpSFALmS",
+  AMADEUS_API_SECRET: "TeeoCgvTEKrCk6pW",
+  AMADEUS_API_BASE_URL: "https://test.api.amadeus.com",
+};
