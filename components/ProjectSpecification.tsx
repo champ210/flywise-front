@@ -72,7 +72,6 @@ const ProjectSpecification: React.FC = () => {
             try {
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
-                // FIX: Cast `navigator` to `any` to allow access to the non-standard `msSaveBlob` property for Internet Explorer compatibility, resolving TypeScript errors.
                 if ((navigator as any).msSaveBlob) { // IE 10+
                     (navigator as any).msSaveBlob(blob, 'FlyWise-AI-Budget.csv');
                 } else {
@@ -103,7 +102,7 @@ const ProjectSpecification: React.FC = () => {
                         disabled={isCsvDownloading}
                         className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 disabled:bg-slate-200"
                     >
-                        {isCsvDownloading ? <LoadingSpinner /> : <Icon style={{height: 20, width: 20, marginRight: 8}} name="document" />}
+                        {isCsvDownloading ? <LoadingSpinner /> : <Icon className="h-5 w-5 mr-2" name="document" />}
                         {isCsvDownloading ? 'Exporting...' : 'Export Budget as CSV'}
                     </button>
                     <button
@@ -111,7 +110,7 @@ const ProjectSpecification: React.FC = () => {
                         disabled={isPdfDownloading}
                         className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 disabled:bg-slate-200"
                     >
-                        {isPdfDownloading ? <LoadingSpinner /> : <Icon style={{height: 20, width: 20, marginRight: 8}} name="download" />}
+                        {isPdfDownloading ? <LoadingSpinner /> : <Icon className="h-5 w-5 mr-2" name="download" />}
                         {isPdfDownloading ? 'Generating...' : 'Download as PDF'}
                     </button>
                 </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UserProfile, LocalProfile, HangoutSuggestion, Experience, ExperienceCategory } from '../types';
 // FIX: Moved getAILocalMatches import from xanoService to geminiService.
@@ -98,7 +99,7 @@ const HomeShare: React.FC<HomeShareProps> = ({ userProfile, onOpenVipModal, onHa
     <div className="max-w-5xl mx-auto p-2 sm:p-4 animate-fade-in-up">
        <div className="flex justify-between items-start mb-4">
         <div className="text-left">
-            <Icon style={{height: 48, width: 48, marginBottom: 8}} name="users" color="#2563eb" />
+            <Icon className="h-12 w-12 mb-2" name="users" color="#2563eb" />
             <h2 className="text-3xl font-bold tracking-tight text-slate-800">Local Connections</h2>
              <p className="mt-1 text-md text-slate-600 max-w-2xl">Connect with locals for authentic travel experiences.</p>
         </div>
@@ -108,7 +109,7 @@ const HomeShare: React.FC<HomeShareProps> = ({ userProfile, onOpenVipModal, onHa
             className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50"
           >
             {mode === 'finding' ? 'Finding Connections' : 'Host Dashboard'}
-            <Icon name="chevron-down" style={{ marginRight: -4, marginLeft: 8, height: 20, width: 20, transition: 'transform 0.2s', transform: [{ rotate: isDropdownOpen ? '180deg' : '0deg' }] }} />
+            <Icon name="chevron-down" className={`-mr-1 ml-2 h-5 w-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
           {isDropdownOpen && (
             <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 animate-fade-in">
@@ -123,13 +124,13 @@ const HomeShare: React.FC<HomeShareProps> = ({ userProfile, onOpenVipModal, onHa
 
       <div className="mt-8 flex justify-center items-center border-b border-slate-200">
           <button onClick={() => setActiveTab('experience')} className={`px-6 py-3 text-sm font-semibold flex items-center gap-2 border-b-2 ${activeTab === 'experience' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              <Icon style={{height: 20, width: 20}} name="sparkles" /> Experiences
+              <Icon className="h-5 w-5" name="sparkles" /> Experiences
           </button>
           <button onClick={() => setActiveTab('hangout')} className={`px-6 py-3 text-sm font-semibold flex items-center gap-2 border-b-2 ${activeTab === 'hangout' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              <Icon style={{height: 20, width: 20}} name="chat" /> Hangouts
+              <Icon className="h-5 w-5" name="chat" /> Hangouts
           </button>
           <button onClick={() => setActiveTab('stay')} className={`px-6 py-3 text-sm font-semibold flex items-center gap-2 border-b-2 ${activeTab === 'stay' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              <Icon style={{height: 20, width: 20}} name="home" /> Local Stays
+              <Icon className="h-5 w-5" name="home" /> Local Stays
           </button>
       </div>
 
@@ -172,7 +173,7 @@ const HomeShare: React.FC<HomeShareProps> = ({ userProfile, onOpenVipModal, onHa
         
         {error && (
             <div className="text-center p-10 bg-red-50 border-2 border-red-200 rounded-lg">
-                <Icon style={{height: 48, width: 48}} name="error" color="#ef4444" />
+                <Icon className="h-12 w-12" name="error" color="#ef4444" />
                 <h3 className="mt-4 text-lg font-semibold text-red-800">Could Not Find Results</h3>
                 <p className="mt-2 text-sm text-red-600">{error}</p>
             </div>
@@ -196,7 +197,7 @@ const HomeShare: React.FC<HomeShareProps> = ({ userProfile, onOpenVipModal, onHa
         
         {!isLoading && locals.length === 0 && experiences.length === 0 && !error && (
              <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
-                <Icon style={{height: 48, width: 48}} name="search" />
+                <Icon className="h-12 w-12" name="search" />
                 <h3 className="mt-2 text-sm font-medium text-slate-900">Start your search</h3>
                 <p className="mt-1 text-sm text-slate-500">Enter a destination above to find compatible locals.</p>
              </div>

@@ -1,8 +1,7 @@
+
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SavedTrip, TravelInsuranceQuote } from '../types';
 import { Icon } from './Icon';
-import { styles } from './styles';
 
 interface InsuranceModalProps {
   trip: SavedTrip;
@@ -14,171 +13,73 @@ const InsuranceQuoteCard: React.FC<{ quote: TravelInsuranceQuote }> = ({ quote }
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <View style={localStyles.quoteCard}>
-            <View>
-                <View style={localStyles.quoteHeader}>
-                    <Text style={localStyles.providerName}>{quote.provider}</Text>
-                    <View style={localStyles.bestForBadge}>
-                        <Text style={localStyles.bestForText}>{quote.bestFor}</Text>
-                    </View>
-                </View>
-                <View style={{marginVertical: 16, alignItems: 'center'}}>
-                    <Text style={localStyles.priceText}>${quote.price.toLocaleString()}</Text>
-                    <Text style={localStyles.priceSubtext}>Total Price</Text>
-                </View>
-                <View>
-                    <View style={localStyles.coverageItem}>
-                        <Text style={localStyles.coverageLabel}>Medical Coverage:</Text>
-                        <Text style={localStyles.coverageValue}>${quote.coverage.medical.limit.toLocaleString()}</Text>
-                    </View>
-                     <View style={localStyles.coverageItem}>
-                        <Text style={localStyles.coverageLabel}>Cancellation Coverage:</Text>
-                        <Text style={localStyles.coverageValue}>${quote.coverage.cancellation.limit.toLocaleString()}</Text>
-                    </View>
-                     <View style={localStyles.coverageItem}>
-                        <Text style={localStyles.coverageLabel}>Baggage Coverage:</Text>
-                        <Text style={localStyles.coverageValue}>${quote.coverage.baggage.limit.toLocaleString()}</Text>
-                    </View>
-                </View>
-            </View>
-            <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={[styles.button, styles.buttonPrimary, {marginTop: 24}]}>
-                <Text style={styles.buttonText}>{isExpanded ? 'Hide Details' : 'View Details'}</Text>
-            </TouchableOpacity>
-        </View>
+        <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between">
+            <div>
+                <div className="flex justify-between items-start">
+                    <p className="text-lg font-bold text-slate-800">{quote.provider}</p>
+                    <div className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
+                        {quote.bestFor}
+                    </div>
+                </div>
+                <div className="my-4 text-center">
+                    <p className="text-4xl font-bold text-slate-900">${quote.price.toLocaleString()}</p>
+                    <p className="text-sm text-slate-500">Total Price</p>
+                </div>
+                <div className="space-y-3 text-sm border-t pt-3">
+                    <div className="flex justify-between">
+                        <span className="font-semibold text-slate-600">Medical Coverage:</span>
+                        <span className="font-bold text-slate-800">${quote.coverage.medical.limit.toLocaleString()}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="font-semibold text-slate-600">Cancellation:</span>
+                        <span className="font-bold text-slate-800">${quote.coverage.cancellation.limit.toLocaleString()}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="font-semibold text-slate-600">Baggage:</span>
+                        <span className="font-bold text-slate-800">${quote.coverage.baggage.limit.toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>
+            <button onClick={() => setIsExpanded(!isExpanded)} className="mt-6 w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                {isExpanded ? 'Hide Details' : 'View Details'}
+            </button>
+        </div>
     );
 };
 
 
 const InsuranceModal: React.FC<InsuranceModalProps> = ({ trip, quotes, onClose }) => {
   return (
-    <Modal visible={true} transparent={true} animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose}>
-        <View style={[styles.modalContainer, {maxWidth: 900}]} onStartShouldSetResponder={() => true}>
-            <View style={localStyles.modalHeader}>
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Icon name="shield" style={{width: 28, height: 28, marginRight: 12}} color="#2563eb" />
-                    <Text style={localStyles.modalTitle}>Insurance Quotes for {trip.name}</Text>
-                </View>
-                <TouchableOpacity onPress={onClose} style={{padding: 8}}>
-                    <Icon name="x-mark" style={{width: 24, height: 24}} color="#9ca3af" />
-                </TouchableOpacity>
-            </View>
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fade-in" onClick={onClose}>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <header className="flex justify-between items-center p-4 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                    <Icon name="shield" className="h-7 w-7 text-blue-600" />
+                    <h2 className="text-xl font-bold text-slate-800">Insurance Quotes for {trip.name}</h2>
+                </div>
+                <button onClick={onClose} className="p-2 rounded-full text-slate-400 hover:bg-slate-100" aria-label="Close">
+                    <Icon name="x-mark" className="h-6 w-6" />
+                </button>
+            </header>
             
-            <ScrollView contentContainerStyle={{padding: 24}}>
+            <main className="flex-grow overflow-y-auto p-6 bg-slate-50">
                 {quotes.length > 0 ? (
-                    <View style={localStyles.grid}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {quotes.map((quote, index) => (
                             <InsuranceQuoteCard key={index} quote={quote} />
                         ))}
-                    </View>
+                    </div>
                 ) : (
-                    <View style={localStyles.emptyState}>
-                        <Icon name="search" style={{width: 48, height: 48}} color="#94a3b8" />
-                        <Text style={localStyles.emptyTitle}>No insurance quotes found</Text>
-                        <Text style={localStyles.emptySubtitle}>We couldn't generate any insurance quotes for this trip. Please try again later.</Text>
-                    </View>
+                    <div className="text-center p-10">
+                        <Icon name="search" className="h-12 w-12 text-slate-400 mx-auto" />
+                        <h3 className="mt-2 text-sm font-medium text-slate-900">No insurance quotes found</h3>
+                        <p className="mt-1 text-sm text-slate-500">We couldn't generate any insurance quotes for this trip. Please try again later.</p>
+                    </div>
                 )}
-            </ScrollView>
-        </View>
-      </TouchableOpacity>
-    </Modal>
+            </main>
+        </div>
+    </div>
   );
 };
-
-const localStyles = StyleSheet.create({
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        margin: -12, // Gutter
-    },
-    quoteCard: {
-        backgroundColor: 'white',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        padding: 16,
-        justifyContent: 'space-between',
-        // FIX: Cast web-specific 'calc' value to any to satisfy React Native's stricter DimensionValue type.
-        width: 'calc(33.333% - 24px)' as any, // For 3 columns
-        margin: 12,
-    },
-    quoteHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    providerName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    bestForBadge: {
-        backgroundColor: '#dcfce7',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 9999,
-    },
-    bestForText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#166534',
-    },
-    priceText: {
-        fontSize: 36,
-        fontWeight: 'bold',
-        color: '#0f172a',
-    },
-    priceSubtext: {
-        fontSize: 14,
-        color: '#64748b',
-    },
-    coverageItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderColor: '#e2e8f0',
-        paddingTop: 12,
-        marginTop: 12,
-    },
-    coverageLabel: {
-        fontWeight: '600',
-        color: '#475569',
-        fontSize: 14,
-    },
-    coverageValue: {
-        fontWeight: 'bold',
-        color: '#1e293b',
-        fontSize: 14,
-    },
-    emptyState: {
-        alignItems: 'center',
-        padding: 40,
-    },
-    emptyTitle: {
-        marginTop: 8,
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#0f172a',
-    },
-    emptySubtitle: {
-        marginTop: 4,
-        fontSize: 14,
-        color: '#64748b',
-    }
-});
 
 export default InsuranceModal;

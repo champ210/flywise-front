@@ -1,6 +1,4 @@
 import React from 'react';
-// FIX: Import ScrollView from react-native
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SavedTrip, SearchResult, ItineraryPlan, Flight, Stay, Car } from '../types';
 
 interface ComparisonViewProps {
@@ -40,22 +38,22 @@ const ComparisonView: React.FC<ComparisonViewProps> = ({ tripsToCompare }) => {
 
   const getCellContent = (trip: SavedTrip, feature: string) => {
     const tripData = trip.data;
-    let cellContent = <Text style={localStyles.cellTextMuted}>—</Text>;
+    let cellContent = <span className="text-slate-400">—</span>;
 
     if (trip.type === 'itinerary') {
         const plan = tripData as ItineraryPlan;
         switch (feature) {
-            case "Destination": cellContent = <Text style={localStyles.cellText}>{plan.destination}</Text>; break;
-            case "Duration": cellContent = <Text style={localStyles.cellText}>{plan.itinerary.length} days</Text>; break;
-            case "Activities": cellContent = <Text style={localStyles.cellText}>{plan.itinerary.length * 3} activities planned</Text>; break;
-            case "Cultural Tips": cellContent = <Text style={localStyles.cellText}>{plan.culturalTips?.length || 0} tips</Text>; break;
+            case "Destination": cellContent = <span>{plan.destination}</span>; break;
+            case "Duration": cellContent = <span>{plan.itinerary.length} days</span>; break;
+            case "Activities": cellContent = <span>{plan.itinerary.length * 3} activities planned</span>; break;
+            case "Cultural Tips": cellContent = <span>{plan.culturalTips?.length || 0} tips</span>; break;
             case "Total Estimated Cost":
             if (plan.totalBudget) {
                 cellContent = (
-                <View>
-                    <Text style={localStyles.cellTextBold}>${plan.totalBudget.toLocaleString()}</Text>
-                    <Text style={localStyles.cellSubText}>AI Estimated</Text>
-                </View>
+                <div>
+                    <span className="font-bold">${plan.totalBudget.toLocaleString()}</span>
+                    <p className="text-xs text-slate-500">AI Estimated</p>
+                </div>
                 );
             }
             break;
@@ -73,26 +71,26 @@ const ComparisonView: React.FC<ComparisonViewProps> = ({ tripsToCompare }) => {
                 if (flights.length > 0) destination = flights[0].arrivalAirport;
                 else if (stays.length > 0) destination = stays[0].location;
                 else if (cars.length > 0) destination = cars[0].location;
-                cellContent = <Text style={localStyles.cellText}>{destination}</Text>;
+                cellContent = <span>{destination}</span>;
                 break;
             }
             case "Flights":
                 cellContent = flights.length > 0 ? (
-                    <View>
-                        <Text style={localStyles.cellText}>{flights.length} found</Text>
-                        <Text style={localStyles.cellSubText}>{getPriceRange(flights)}</Text>
-                        {isPackage && <Text style={localStyles.packageDealText}>Package Deal</Text>}
-                    </View>
-                ) : <Text style={localStyles.cellText}>0 found</Text>;
+                    <div>
+                        <span>{flights.length} found</span>
+                        <p className="text-xs text-slate-500">{getPriceRange(flights)}</p>
+                        {isPackage && <p className="text-xs font-semibold text-blue-600">Package Deal</p>}
+                    </div>
+                ) : <span>0 found</span>;
                 break;
              case "Stays":
                 cellContent = stays.length > 0 ? (
-                    <View>
-                        <Text style={localStyles.cellText}>{stays.length} found</Text>
-                        <Text style={localStyles.cellSubText}>{getPriceRange(stays)}/night</Text>
-                        {isPackage && <Text style={localStyles.packageDealText}>Package Deal</Text>}
-                    </View>
-                ) : <Text style={localStyles.cellText}>0 found</Text>;
+                    <div>
+                        <span>{stays.length} found</span>
+                        <p className="text-xs text-slate-500">{getPriceRange(stays)}/night</p>
+                        {isPackage && <p className="text-xs font-semibold text-blue-600">Package Deal</p>}
+                    </div>
+                ) : <span>0 found</span>;
                 break;
             // ... more cases
         }
@@ -101,102 +99,31 @@ const ComparisonView: React.FC<ComparisonViewProps> = ({ tripsToCompare }) => {
   };
 
   return (
-    <ScrollView horizontal>
-        <View style={localStyles.table}>
+    <div className="overflow-x-auto">
+        <div className="border border-slate-200 rounded-lg bg-white min-w-[600px]">
             {/* Header Row */}
-            <View style={localStyles.row}>
-                <View style={[localStyles.headerCell, localStyles.featureCell]}>
-                    <Text style={localStyles.headerText}>Feature</Text>
-                </View>
+            <div className="flex bg-slate-50">
+                <div className="p-3 w-40 text-xs font-semibold text-slate-500 uppercase">Feature</div>
                 {tripsToCompare.map(trip => (
-                    <View key={trip.id} style={[localStyles.headerCell, localStyles.dataCell]}>
-                        <Text style={localStyles.headerText}>{trip.name}</Text>
-                    </View>
+                    <div key={trip.id} className="p-3 flex-1 border-l border-slate-200 text-sm font-semibold text-slate-800">
+                        {trip.name}
+                    </div>
                 ))}
-            </View>
+            </div>
             {/* Data Rows */}
             {features.map((feature, index) => (
-                <View key={feature} style={[localStyles.row, index % 2 !== 0 && localStyles.altRow]}>
-                    <View style={[localStyles.featureCell, localStyles.bodyCell]}>
-                        <Text style={localStyles.featureText}>{feature}</Text>
-                    </View>
+                <div key={feature} className={`flex border-t border-slate-200 ${index % 2 !== 0 ? 'bg-slate-50/50' : ''}`}>
+                    <div className="p-3 w-40 text-sm font-medium text-slate-700">{feature}</div>
                     {tripsToCompare.map(trip => (
-                        <View key={trip.id} style={[localStyles.dataCell, localStyles.bodyCell]}>
+                        <div key={trip.id} className="p-3 flex-1 border-l border-slate-200 text-sm text-slate-600">
                             {getCellContent(trip, feature)}
-                        </View>
+                        </div>
                     ))}
-                </View>
+                </div>
             ))}
-        </View>
-    </ScrollView>
+        </div>
+    </div>
   );
 };
-
-const localStyles = StyleSheet.create({
-    table: {
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 8,
-        backgroundColor: 'white',
-        minWidth: 600,
-    },
-    row: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    altRow: {
-        backgroundColor: '#f8fafc',
-    },
-    headerCell: {
-        padding: 12,
-        backgroundColor: '#f8fafc',
-    },
-    bodyCell: {
-        padding: 12,
-        justifyContent: 'center',
-    },
-    featureCell: {
-        width: 150,
-    },
-    dataCell: {
-        flex: 1,
-        borderLeftWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    headerText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#475569',
-        textTransform: 'uppercase',
-    },
-    featureText: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#1e293b',
-    },
-    cellText: {
-        fontSize: 14,
-        color: '#334155',
-    },
-    cellTextBold: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#0f172a',
-    },
-    cellTextMuted: {
-        fontSize: 14,
-        color: '#64748b',
-    },
-    cellSubText: {
-        fontSize: 12,
-        color: '#64748b',
-    },
-    packageDealText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#2563eb',
-    }
-});
 
 export default React.memo(ComparisonView);

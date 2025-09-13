@@ -1,6 +1,9 @@
 import { SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, PassengerDetails, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, WandergramPost, WandergramStory, WandergramConversation, WandergramComment, WandergramChatMessage, Community, MeetupEvent, GroupTrip, Transaction, GamificationProfile, PaymentMethod, Experience } from '../types';
 
 const TOKEN_KEY = 'flywise_auth_token';
+const XANO_AUTH_URL = "https://x8ki-letl-twmt.n7.xano.io/api:eLc0elI2";
+const XANO_BASE_URL = "https://x8ki-letl-twmt.n7.xano.io/api:nUxHhkwI";
+
 
 // --- Token Management ---
 
@@ -33,7 +36,7 @@ export const removeToken = () => {
 
 const apiRequest = async <T>(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<T> => {
     const isAuthEndpoint = endpoint.startsWith('/auth/');
-    const baseUrl = isAuthEndpoint ? process.env.XANO_AUTH_URL : process.env.XANO_BASE_URL;
+    const baseUrl = isAuthEndpoint ? XANO_AUTH_URL : XANO_BASE_URL;
     const urlName = isAuthEndpoint ? 'XANO_AUTH_URL' : 'XANO_BASE_URL';
 
     const token = getToken();
@@ -46,7 +49,7 @@ const apiRequest = async <T>(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 
 
     if (!baseUrl || baseUrl.includes("YOUR_XANO")) {
         // Mock API responses for development without a live backend
-        console.warn(`${urlName} is not configured in env.ts. Falling back to mock API for endpoint: ${method} ${endpoint}`);
+        console.warn(`${urlName} is not configured. Falling back to mock API for endpoint: ${method} ${endpoint}`);
         return mockApi(endpoint, method, body) as Promise<T>;
     }
     

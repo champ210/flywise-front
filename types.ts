@@ -1,12 +1,10 @@
 // This file contains all the type definitions for the application.
-// It remains largely the same as the logic is unchanged,
-// but IconProps will be updated for react-native-svg compatibility.
+// It remains largely the same as the logic is unchanged.
 
 export interface IconProps {
-  name?: string;
-  style?: any; // In React Native, style can be an object or an array of objects
-  className?: string; // FIX: Add className for web compatibility
-  color?: string; // For react-native-svg fill/stroke
+  name: string;
+  className?: string; // For web compatibility with TailwindCSS
+  color?: string; // For fill/stroke
   width?: number | string;
   height?: number | string;
 }

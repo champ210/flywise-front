@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ItineraryPlan, SavedTrip, BudgetOptimizationSuggestion, TripIdea } from '../types';
 import { getItinerary, getBudgetOptimizations } from '../services/geminiService';
@@ -144,8 +145,7 @@ const ItineraryPlanner: React.FC<ItineraryPlannerProps> = ({ onSaveTrip, isOffli
                 disabled={isLoading || isOffline}
                 className="w-full justify-center inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400"
               >
-                {/* FIX: Replaced className with style prop */}
-                <Icon name="planner" style={{ marginRight: 8, height: 20, width: 20 }} />
+                <Icon name="planner" className="mr-2 h-5 w-5" />
                 {isOffline ? 'Offline - Cannot Generate' : 'Generate Plan'}
               </button>
             </div>
@@ -154,8 +154,7 @@ const ItineraryPlanner: React.FC<ItineraryPlannerProps> = ({ onSaveTrip, isOffli
           <div className="mt-8">
               {error && (
                    <div className="flex flex-col items-center justify-center text-center p-10 bg-red-50 border-2 border-red-200 rounded-lg">
-                      {/* FIX: Replaced className with style and color props */}
-                      <Icon name="error" style={{ height: 48, width: 48 }} color="#ef4444" />
+                      <Icon name="error" className="h-12 w-12 text-red-500" />
                       <h3 className="mt-4 text-lg font-semibold text-red-800">Failed to Create Itinerary</h3>
                       <p className="mt-2 text-sm text-red-600">{error}</p>
                   </div>
@@ -167,8 +166,7 @@ const ItineraryPlanner: React.FC<ItineraryPlannerProps> = ({ onSaveTrip, isOffli
                   {plan.totalBudget && (
                     <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200">
                         <h3 className="text-xl font-semibold text-slate-800 flex items-center">
-                            {/* FIX: Replaced className with style and color props */}
-                            <Icon name="receipt-percent" style={{ height: 24, width: 24, marginRight: 12 }} color="#d97706" />
+                            <Icon name="lightbulb" className="h-6 w-6 mr-3 text-amber-600" />
                             AI Budget Optimizer
                         </h3>
                         <p className="text-sm text-slate-600 mt-2">Your plan has a budget. Let our AI analyze it for potential savings without compromising your experience.</p>
@@ -177,8 +175,7 @@ const ItineraryPlanner: React.FC<ItineraryPlannerProps> = ({ onSaveTrip, isOffli
                             disabled={isOptimizing}
                             className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400"
                         >
-                            {/* FIX: Replaced className with style prop */}
-                            {isOptimizing ? <LoadingSpinner /> : <Icon name="sparkles" style={{ height: 20, width: 20, marginRight: 8 }} />}
+                            {isOptimizing ? <LoadingSpinner /> : <Icon name="sparkles" className="h-5 w-5 mr-2" />}
                             {isOptimizing ? 'Optimizing...' : 'Optimize Budget'}
                         </button>
                         

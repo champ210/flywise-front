@@ -1,5 +1,5 @@
+
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SavedTrip, Checklist, ItineraryPlan, TravelInsuranceQuote } from '../types';
 import { Icon } from './Icon';
 import ComparisonView from './ComparisonView';
@@ -8,7 +8,6 @@ import InsuranceModal from './InsuranceModal';
 import { getTravelChecklist, getInsuranceQuotes } from '../services/geminiService';
 import LoadingSpinner from './LoadingSpinner';
 import LiveTripDashboard from './LiveTripDashboard';
-import { styles } from './styles';
 
 interface MyTripsProps {
   savedTrips: SavedTrip[];
@@ -24,7 +23,6 @@ const MyTrips: React.FC<MyTripsProps> = ({ savedTrips, onDeleteTrip, isOffline, 
   const [modalData, setModalData] = useState<{ trip: SavedTrip, checklist: Checklist } | null>(null);
   const [insuranceModalData, setInsuranceModalData] = useState<{ trip: SavedTrip; quotes: TravelInsuranceQuote[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const comparisonRef = useRef<ScrollView>(null);
 
   const activeTrip = savedTrips.find(trip => {
     if (trip.type !== 'itinerary' || !trip.startDate || !trip.endDate) return false;
@@ -83,7 +81,7 @@ const MyTrips: React.FC<MyTripsProps> = ({ savedTrips, onDeleteTrip, isOffline, 
   }
 
   return (
-    <View style={localStyles.container}>
+    <div className="p-4 max-w-4xl mx-auto">
         {modalData && (
           <ChecklistModal
             trip={modalData.trip}
@@ -98,153 +96,78 @@ const MyTrips: React.FC<MyTripsProps> = ({ savedTrips, onDeleteTrip, isOffline, 
             onClose={() => setInsuranceModalData(null)}
           />
         )}
-        <View style={localStyles.header}>
-          <View>
-            <Text style={localStyles.title}>My Saved Trips</Text>
-            <Text style={localStyles.subtitle}>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">My Saved Trips</h2>
+            <p className="mt-1 text-sm text-slate-600">
               Here are your saved itineraries and searches. Select two or more to compare.
-            </Text>
-          </View>
-        </View>
+            </p>
+          </div>
+        </div>
         
         {error && (
-            <View style={localStyles.errorBox}>
-                <Text style={localStyles.errorText}>Error: {error}</Text>
-            </View>
+            <div className="my-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                <strong>Error:</strong> {error}
+            </div>
         )}
 
         {savedTrips.length === 0 ? (
-          <View style={localStyles.emptyState}>
-            <Icon name="bookmark" style={localStyles.emptyIcon} color="#94a3b8" />
-            <Text style={localStyles.emptyTitle}>No saved trips yet</Text>
-            <Text style={localStyles.emptySubtitle}>Save itineraries or search results to see them here.</Text>
-          </View>
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
+            <Icon name="bookmark" className="mx-auto h-12 w-12 text-slate-400" />
+            <h3 className="mt-2 text-sm font-medium text-slate-900">No saved trips yet</h3>
+            <p className="mt-1 text-sm text-slate-500">Save itineraries or search results to see them here.</p>
+          </div>
         ) : (
-          <View>
+          <div className="space-y-3">
             {savedTrips.map(trip => (
-              <View key={trip.id} style={localStyles.tripItem}>
-                {/* Checkbox would be a custom component in RN */}
-                <View style={{flex: 1}}>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Icon name={trip.type === 'itinerary' ? 'planner' : 'search'} style={{width: 20, height: 20, marginRight: 8}} color={trip.type === 'itinerary' ? '#4f46e5' : '#2563eb'} />
-                    <Text style={localStyles.tripName}>{trip.name}</Text>
-                  </View>
-                  <Text style={localStyles.tripDate}>
+              <div key={trip.id} className="bg-white border border-slate-200 rounded-lg p-4 flex items-center">
+                 <input
+                    type="checkbox"
+                    checked={selectedTripIds.includes(trip.id)}
+                    onChange={() => handleToggleSelect(trip.id)}
+                    className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-4"
+                    aria-label={`Select trip: ${trip.name}`}
+                  />
+                <div className="flex-1">
+                  <div className="flex items-center">
+                    <Icon name={trip.type === 'itinerary' ? 'planner' : 'search'} className={`h-5 w-5 mr-2 ${trip.type === 'itinerary' ? 'text-indigo-600' : 'text-blue-600'}`} />
+                    <p className="font-semibold text-sm text-slate-800">{trip.name}</p>
+                  </div>
+                  <p className="text-xs text-slate-500 pl-7">
                     Saved on {new Date(trip.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
+                  </p>
+                </div>
 
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <div className="flex items-center space-x-2">
                     {trip.type === 'itinerary' && (
                       <>
-                        <TouchableOpacity onPress={() => handleGetInsurance(trip)} disabled={!!isGenerating || isOffline} style={localStyles.actionButton}>
-                          {isGenerating?.type === 'insurance' && isGenerating?.tripId === trip.id ? <LoadingSpinner /> : <Icon name="shield" style={{width: 20, height: 20}} color="#64748b" />}
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleGenerateChecklist(trip)} disabled={!!isGenerating || isOffline} style={localStyles.actionButton}>
-                          {isGenerating?.type === 'checklist' && isGenerating?.tripId === trip.id ? <LoadingSpinner /> : <Icon name="lightbulb" style={{width: 20, height: 20}} color="#64748b" />}
-                        </TouchableOpacity>
+                        <button onClick={() => handleGetInsurance(trip)} disabled={!!isGenerating || isOffline} className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-50" aria-label="Get insurance quotes">
+                          {isGenerating?.type === 'insurance' && isGenerating?.tripId === trip.id ? <LoadingSpinner /> : <Icon name="shield" className="h-5 w-5 text-slate-500" />}
+                        </button>
+                        <button onClick={() => handleGenerateChecklist(trip)} disabled={!!isGenerating || isOffline} className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-50" aria-label="Generate checklist">
+                          {isGenerating?.type === 'checklist' && isGenerating?.tripId === trip.id ? <LoadingSpinner /> : <Icon name="lightbulb" className="h-5 w-5 text-slate-500" />}
+                        </button>
                       </>
                     )}
-                    <TouchableOpacity onPress={() => onDeleteTrip(trip.id)} style={localStyles.actionButton}>
-                        <Icon name="trash" style={{width: 20, height: 20}} color="#64748b"/>
-                    </TouchableOpacity>
-                </View>
-              </View>
+                    <button onClick={() => onDeleteTrip(trip.id)} className="p-2 rounded-full hover:bg-red-100 text-slate-500 hover:text-red-600" aria-label="Delete trip">
+                        <Icon name="trash" className="h-5 w-5"/>
+                    </button>
+                </div>
+              </div>
             ))}
-          </View>
+          </div>
         )}
         
         {tripsToCompare.length > 0 && (
-          <View style={{marginTop: 48}}>
-            <Text style={localStyles.title}>Comparison</Text>
-            <ComparisonView tripsToCompare={tripsToCompare} />
-          </View>
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-slate-800">Comparison</h2>
+            <div className="mt-4">
+              <ComparisonView tripsToCompare={tripsToCompare} />
+            </div>
+          </div>
         )}
-    </View>
+    </div>
   );
 };
-
-const localStyles = StyleSheet.create({
-    container: {
-        padding: 16,
-        maxWidth: 900,
-        marginHorizontal: 'auto',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    subtitle: {
-        marginTop: 4,
-        fontSize: 14,
-        color: '#475569',
-    },
-    errorBox: {
-        marginVertical: 16,
-        padding: 16,
-        backgroundColor: '#fff1f2',
-        borderWidth: 1,
-        borderColor: '#fecaca',
-        borderRadius: 8,
-    },
-    errorText: {
-        color: '#dc2626',
-        fontSize: 14,
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingVertical: 48,
-        borderWidth: 2,
-        borderStyle: 'dashed',
-        borderColor: '#e2e8f0',
-        borderRadius: 8,
-    },
-    emptyIcon: {
-        width: 48,
-        height: 48,
-    },
-    emptyTitle: {
-        marginTop: 8,
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#0f172a',
-    },
-    emptySubtitle: {
-        marginTop: 4,
-        fontSize: 14,
-        color: '#64748b',
-    },
-    tripItem: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 8,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    tripName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1e293b',
-    },
-    tripDate: {
-        fontSize: 12,
-        color: '#64748b',
-        paddingLeft: 28,
-    },
-    actionButton: {
-        padding: 8,
-        borderRadius: 9999,
-    }
-});
 
 export default React.memo(MyTrips);

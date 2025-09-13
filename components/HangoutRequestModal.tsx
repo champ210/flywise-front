@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { LocalProfile, HangoutSuggestion, UserProfile } from '../types';
 import { generateHangoutRequestMessage } from '../services/geminiService';
@@ -66,7 +67,7 @@ const HangoutRequestModal: React.FC<HangoutRequestModalProps> = ({ local, sugges
         <header className="flex justify-between items-center p-4 border-b border-slate-200">
           <h2 className="text-xl font-bold text-slate-800">Request Hangout with {local.name}</h2>
           <button onClick={onClose} className="p-2 rounded-full text-slate-400 hover:bg-slate-100" aria-label="Close">
-            <Icon style={{height: 24, width: 24}} name="x-mark" />
+            <Icon className="h-6 w-6" name="x-mark" />
           </button>
         </header>
         

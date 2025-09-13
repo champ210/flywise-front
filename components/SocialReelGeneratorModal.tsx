@@ -60,8 +60,13 @@ const SocialReelGeneratorModal: React.FC<SocialReelGeneratorModalProps> = ({ tri
         setError(null);
         try {
             const imageData = await Promise.all(images.map(img => fileToDataUrl(img.file)));
-            const reel = await generateSocialReel(trip.data, imageData);
-            reel.tripId = trip.id;
+            // FIX: The generateSocialReel function returns an object without tripId.
+            // Create a new SocialReel object by spreading the result and adding the tripId.
+            const reelData = await generateSocialReel(trip.data, imageData);
+            const reel: SocialReel = {
+                ...reelData,
+                tripId: trip.id,
+            };
             setGeneratedReel(reel);
             setStatus('preview');
         } catch (err) {

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, AppState, ActivityIndicator, Modal } from 'react-native';
 
 import Header from './components/Header';
 import ChatInterface from './components/ChatInterface';
@@ -44,8 +43,8 @@ import TranslatorModal from './components/TranslatorModal';
 import { getTranslator } from './localization';
 import ExperienceDetail from './components/ExperienceDetail';
 import ExperienceBooking from './components/ExperienceBooking';
-import { styles } from './components/styles';
 import SearchBar from './components/SearchBar';
+import ProjectSpecification from './components/ProjectSpecification';
 
 export enum Tab {
   Home = 'Home',
@@ -68,6 +67,7 @@ export enum Tab {
   Passport = 'Passport',
   Search = 'Search',
   Profile = 'My Profile',
+  ProjectSpecification = 'Project Specification',
 }
 
 const DEFAULT_GAMIFICATION_PROFILE: GamificationProfile = {
@@ -114,6 +114,7 @@ const MORE_TABS = [
   { name: Tab.Passport, icon: 'passport' },
   { name: Tab.Search, icon: 'search' },
   { name: Tab.Profile, icon: 'user' },
+  { name: Tab.ProjectSpecification, icon: 'document' },
 ];
 
 export type Language = 'en' | 'fr' | 'ar';
@@ -210,7 +211,6 @@ export default function App() {
   });
 
   const renderActiveTab = () => {
-    // This logic remains complex, but each component is now a RNW component
     if (flightToBook) return <FlightBooking flight={flightToBook} onClose={() => setFlightToBook(null)} onBookingComplete={handleBookingComplete} />;
     if (stayToBook) return <StayBooking stay={stayToBook} onClose={() => setStayToBook(null)} onBookingComplete={handleBookingComplete} />;
     if (carToBook) return <CarBooking car={carToBook} onClose={() => setCarToBook(null)} onBookingComplete={handleBookingComplete} />;
@@ -221,15 +221,15 @@ export default function App() {
     if (selectedExperience) return <ExperienceDetail experience={selectedExperience} onBack={() => setSelectedExperience(null)} onBook={setExperienceToBook} t={t} />;
 
     return (
-      <View style={activeTab !== 'Chat' && styles.tabContentContainer}>
+      <div className={activeTab !== Tab.Chat ? "p-4" : ""}>
         {(() => {
           switch (activeTab) {
             case Tab.Home: return <HomeDashboard userProfile={userProfile} savedTrips={savedTrips} posts={wandergramPosts} setActiveTab={setActiveTab} onOpenScanner={() => setIsScannerModalOpen(true)} onOpenTranslator={() => setIsTranslatorModalOpen(true)} />;
             case Tab.Search: return (<>
               <SearchBar onSearch={handleSearchResults} onLoading={handleLoading} onError={handleError} userProfile={userProfile} />
-              <View style={{ marginTop: 16 }}>
+              <div className="mt-4">
                 <ResultsList results={results} isLoading={isLoading} error={error} onBookFlight={handleBookFlight} onBookStay={handleBookStay} onBookCar={handleBookCar} />
-              </View>
+              </div>
             </>);
             case Tab.Chat: return <ChatInterface onSaveTrip={handleSaveTrip} userProfile={userProfile} savedTrips={savedTrips} onBookFlight={handleBookFlight} onBookStay={handleBookStay} onBookCar={handleBookCar} initialQuery={chatQuery} onQueryHandled={() => setChatQuery('')} />;
             case Tab.Planner: return <ItineraryPlanner onSaveTrip={handleSaveTrip} isOffline={isOffline} onFindFlights={handleFindFlightsForItinerary} initialData={plannerData} onPlannerDataHandled={() => setPlannerData(null)} />;
@@ -248,15 +248,16 @@ export default function App() {
             case Tab.FlightTracker: return <FlightTracker />;
             case Tab.Discovery: return <TravelTrendRadar userProfile={userProfile} />;
             case Tab.Wandergram: return <Wandergram stories={wandergramStories} posts={wandergramPosts} userProfile={userProfile} onOpenCreateModal={() => setIsCreateWandergramPostModalOpen(true)} onAskAi={setPostForAskAi} onAddComment={handleWandergramComment} onEarnPoints={handleEarnPoints} conversations={wandergramConversations} activeView={activeWandergramView} activeConversationId={activeWandergramConversationId} onNavigate={handleNavigateWandergram} onSelectConversation={handleSelectWandergramConversation} onSendMessage={handleSendWandergramMessage} onPlanTrip={handlePlanTripFromPost} />;
+            case Tab.ProjectSpecification: return <ProjectSpecification />;
             default: return null;
           }
         })()}
-      </View>
+      </div>
     );
   };
   
   return (
-    <View style={styles.appContainer}>
+    <div className="w-full max-w-7xl mx-auto bg-white/80 border border-slate-200/80 rounded-2xl shadow-2xl flex flex-col h-full max-h-[95vh]">
       <Header 
         onOpenVipModal={onOpenVipModal} 
         isLoggedIn={isLoggedIn}
@@ -269,61 +270,61 @@ export default function App() {
         t={t}
       />
       
-      <Modal visible={isVipModalOpen} transparent={true} animationType="fade" onRequestClose={() => setIsVipModalOpen(false)}><SubscriptionModal onClose={() => setIsVipModalOpen(false)} /></Modal>
-      <Modal visible={isOnboardingOpen} transparent={true} animationType="fade" onRequestClose={handleCloseOnboarding}><OnboardingModal onClose={handleCloseOnboarding} /></Modal>
-      <Modal visible={isLoginModalOpen} transparent={true} animationType="fade" onRequestClose={() => setIsLoginModalOpen(false)}><LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} onSwitchToSignUp={openSignUpModal} /></Modal>
-      <Modal visible={isSignUpModalOpen} transparent={true} animationType="fade" onRequestClose={() => setIsSignUpModalOpen(false)}><SignUpModal onClose={() => setIsSignUpModalOpen(false)} onSignUpSuccess={handleSignUpSuccess} onSwitchToLogin={openLoginModal} /></Modal>
-      <Modal visible={isCreateWandergramPostModalOpen} transparent={true} animationType="fade" onRequestClose={() => setIsCreateWandergramPostModalOpen(false)}><CreateWandergramPostModal onClose={() => setIsCreateWandergramPostModalOpen(false)} onCreatePost={handleCreateWandergramPost} /></Modal>
-      <Modal visible={!!postForAskAi} transparent={true} animationType="fade" onRequestClose={() => setPostForAskAi(null)}>{postForAskAi && <AskAiAboutPhotoModal post={postForAskAi} onClose={() => setPostForAskAi(null)} />}</Modal>
-      <Modal visible={isScannerModalOpen} transparent={true} animationType="fade" onRequestClose={() => setIsScannerModalOpen(false)}><DocumentScannerModal onClose={() => setIsScannerModalOpen(false)} onSaveDocument={(doc) => activeTrip && handleAddDocumentToTrip(activeTrip.id, doc)} /></Modal>
-      <Modal visible={isTranslatorModalOpen} transparent={true} animationType="fade" onRequestClose={() => setIsTranslatorModalOpen(false)}><TranslatorModal onClose={() => setIsTranslatorModalOpen(false)} /></Modal>
-      <Modal visible={!!experienceToBook} transparent={true} animationType="fade" onRequestClose={() => setExperienceToBook(null)}>{experienceToBook && <ExperienceBooking experience={experienceToBook} onClose={() => setExperienceToBook(null)} onConfirm={handleConfirmExperienceBooking} t={t} />}</Modal>
+      {isVipModalOpen && <SubscriptionModal onClose={() => setIsVipModalOpen(false)} />}
+      {isOnboardingOpen && <OnboardingModal onClose={handleCloseOnboarding} />}
+      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} onSwitchToSignUp={openSignUpModal} />}
+      {isSignUpModalOpen && <SignUpModal onClose={() => setIsSignUpModalOpen(false)} onSignUpSuccess={handleSignUpSuccess} onSwitchToLogin={openLoginModal} />}
+      {isCreateWandergramPostModalOpen && <CreateWandergramPostModal onClose={() => setIsCreateWandergramPostModalOpen(false)} onCreatePost={handleCreateWandergramPost} />}
+      {postForAskAi && <AskAiAboutPhotoModal post={postForAskAi} onClose={() => setPostForAskAi(null)} />}
+      {isScannerModalOpen && <DocumentScannerModal onClose={() => setIsScannerModalOpen(false)} onSaveDocument={(doc) => activeTrip && handleAddDocumentToTrip(activeTrip.id, doc)} />}
+      {isTranslatorModalOpen && <TranslatorModal onClose={() => setIsTranslatorModalOpen(false)} />}
+      {experienceToBook && <ExperienceBooking experience={experienceToBook} onClose={() => setExperienceToBook(null)} onConfirm={handleConfirmExperienceBooking} t={t} />}
       
-      <View style={styles.navContainer}>
-          <View style={styles.navTabs}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
+      <div className="border-b border-slate-200/80 px-4 flex items-center justify-between">
+          <div className="flex items-center">
+              <div className="flex space-x-2 overflow-x-auto custom-scrollbar">
                   {PRIMARY_TABS.map(({ name, icon }) => (
-                      <TouchableOpacity 
+                      <button 
                         key={name}
-                        onPress={() => setActiveTab(name)}
-                        style={[styles.navButton, activeTab === name && styles.navButtonActive]}
+                        onClick={() => setActiveTab(name)}
+                        className={`flex items-center px-4 py-3 border-b-2 ${activeTab === name ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
                       >
-                           <Icon name={icon} style={styles.navIcon} color={activeTab === name ? '#2563eb' : '#64748b'} />
-                           <Text style={[styles.navText, activeTab === name && styles.navTextActive]}>{name}</Text>
-                      </TouchableOpacity>
+                           <Icon name={icon} className="h-5 w-5" />
+                           <span className="ml-2 text-sm font-semibold">{name}</span>
+                      </button>
                   ))}
-              </ScrollView>
-          </View>
-          <View>
-              <TouchableOpacity 
-                onPress={() => setIsMoreMenuOpen(prev => !prev)}
-                style={[styles.navButton, MORE_TABS.some(t => t.name === activeTab) && styles.navButtonActive]}
+              </div>
+          </div>
+          <div className="relative">
+              <button 
+                onClick={() => setIsMoreMenuOpen(prev => !prev)}
+                className={`flex items-center px-4 py-3 border-b-2 ${MORE_TABS.some(t => t.name === activeTab) ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
               >
-                  <Text style={[styles.navText, MORE_TABS.some(t => t.name === activeTab) && styles.navTextActive]}>More</Text>
-                  <Icon name="chevron-down" style={styles.navIcon} color={MORE_TABS.some(t => t.name === activeTab) ? '#2563eb' : '#64748b'} />
-              </TouchableOpacity>
+                  <span className={`text-sm font-semibold ${MORE_TABS.some(t => t.name === activeTab) ? 'text-blue-600' : 'text-slate-600'}`}>More</span>
+                  <Icon name="chevron-down" className={`h-5 w-5 ml-1 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
                {isMoreMenuOpen && (
-                  <View style={styles.moreMenu}>
-                      <View>
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 p-2 z-50">
+                      <div>
                         {MORE_TABS.map(({name, icon}) => (
-                            <TouchableOpacity
+                            <button
                                 key={name}
-                                onPress={() => { setActiveTab(name); setIsMoreMenuOpen(false); }}
-                                style={[styles.moreMenuItem, activeTab === name && styles.moreMenuItemActive]}
+                                onClick={() => { setActiveTab(name); setIsMoreMenuOpen(false); }}
+                                className={`w-full flex items-center px-3 py-2 rounded-md text-left ${activeTab === name ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100'}`}
                             >
-                                <Icon name={icon} style={styles.moreMenuIcon} color={activeTab === name ? '#2563eb' : '#64748b'} />
-                                <Text style={[styles.moreMenuText, activeTab === name && styles.moreMenuTextActive]}>{name}</Text>
-                            </TouchableOpacity>
+                                <Icon name={icon} className={`h-5 w-5 mr-3 ${activeTab === name ? 'text-blue-600' : 'text-slate-500'}`} />
+                                <span className={`text-sm font-medium ${activeTab === name ? 'text-blue-600' : 'text-slate-700'}`}>{name}</span>
+                            </button>
                         ))}
-                      </View>
-                  </View>
+                      </div>
+                  </div>
               )}
-          </View>
-      </View>
+          </div>
+      </div>
 
-      <ScrollView style={styles.mainContent} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <main className="flex-1 bg-slate-50 overflow-y-auto custom-scrollbar">
         {renderActiveTab()}
-      </ScrollView>
-    </View>
+      </main>
+    </div>
   );
 }

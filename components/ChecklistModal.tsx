@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, StyleSheet } from 'react-native';
 import { SavedTrip, Checklist, ChecklistItem } from '../types';
 import { Icon } from './Icon';
-import { styles } from './styles';
 
 interface ChecklistModalProps {
   trip: SavedTrip;
@@ -13,12 +11,14 @@ interface ChecklistModalProps {
 const CheckboxIcon: React.FC<{ checked: boolean }> = ({ checked }) => {
     if (checked) {
         return (
-            <View style={localStyles.checkboxChecked}>
-                <Icon name="check-circle" color="white" style={{width: 16, height: 16}} />
-            </View>
+            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
         );
     }
-    return <View style={localStyles.checkboxUnchecked} />;
+    return <div className="w-5 h-5 border-2 border-slate-400 rounded flex-shrink-0 bg-white"></div>;
 };
 
 const ChecklistSection: React.FC<{
@@ -31,187 +31,84 @@ const ChecklistSection: React.FC<{
     const [isOpen, setIsOpen] = useState(true);
 
     return (
-        <View style={localStyles.sectionContainer}>
-            <TouchableOpacity
-                onPress={() => setIsOpen(!isOpen)}
-                style={localStyles.sectionHeader}
+        <div className="border-b border-slate-200">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex justify-between items-center p-4"
             >
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Icon name={icon} style={{width: 24, height: 24, marginRight: 12}} color="#2563eb" />
-                    <Text style={localStyles.sectionTitle}>{title}</Text>
-                </View>
-                <Icon name="chevron-down" style={{width: 20, height: 20, transform: [{rotate: isOpen ? '180deg' : '0deg'}]}} color="#64748b" />
-            </TouchableOpacity>
+                <div className="flex items-center">
+                    <Icon name={icon} className="w-6 h-6 mr-3 text-blue-600" />
+                    <span className="text-lg font-semibold text-slate-800">{title}</span>
+                </div>
+                <Icon name="chevron-down" className={`w-5 h-5 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
             {isOpen && (
-                <View style={localStyles.sectionContent}>
+                <div className="px-4 pb-4">
                     {items.map((item, index) => (
-                        <TouchableOpacity key={index} onPress={() => onToggle(index)} style={localStyles.checklistItem}>
-                            <CheckboxIcon checked={item.checked} />
-                            <Text style={[localStyles.itemText, item.checked && localStyles.itemTextChecked]}>
-                                {item.item}
-                            </Text>
-                        </TouchableOpacity>
+                        <div key={index} onClick={() => onToggle(index)} className="flex items-center py-2 px-1 hover:bg-slate-50 cursor-pointer rounded-md" role="button" tabIndex={0}>
+                           <CheckboxIcon checked={item.checked} />
+                            <span className={`ml-4 text-sm flex-grow ${item.checked ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{item.item}</span>
+                        </div>
                     ))}
                     {children}
-                </View>
+                </div>
             )}
-        </View>
+        </div>
     );
 };
 
-
 const ChecklistModal: React.FC<ChecklistModalProps> = ({ trip, checklist, onClose }) => {
-  const [currentChecklist, setCurrentChecklist] = useState<Checklist>(checklist);
+  const [localChecklist, setLocalChecklist] = useState(checklist);
 
-  const handleToggle = (section: keyof Checklist, itemIndex: number) => {
-    setCurrentChecklist(prev => {
-      const newChecklist = { ...prev };
-      const isChecklistItemArray = (arr: any): arr is ChecklistItem[] => Array.isArray(arr) && (arr.length === 0 || typeof arr[0].item === 'string');
-
+  const handleToggle = (section: keyof Checklist, index: number) => {
+    setLocalChecklist(prev => {
+      const sectionItems = prev[section] as ChecklistItem[];
+      const newItems = sectionItems.map((item, i) =>
+        i === index ? { ...item, checked: !item.checked } : item
+      );
       if (section === 'documents') {
-        const newItems = [...prev.documents.items];
-        newItems[itemIndex] = { ...newItems[itemIndex], checked: !newItems[itemIndex].checked };
-        newChecklist.documents = { ...prev.documents, items: newItems };
-      } else if (isChecklistItemArray(newChecklist[section])) {
-        const newItems = [...(newChecklist[section] as ChecklistItem[])];
-        newItems[itemIndex] = { ...newItems[itemIndex], checked: !newItems[itemIndex].checked };
-        (newChecklist as any)[section] = newItems;
+        return { ...prev, documents: { ...prev.documents, items: newItems } };
       }
-      
-      return newChecklist;
+      return { ...prev, [section]: newItems };
     });
   };
 
   return (
-    <Modal visible={true} transparent={true} animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose}>
-        <View style={[styles.modalContainer, {maxWidth: 600}]} onStartShouldSetResponder={() => true}>
-          <View style={localStyles.modalHeader}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-               <Icon name="check-circle" style={{width: 28, height: 28, marginRight: 12}} color="#22c55e" />
-              <Text style={localStyles.modalTitle}>Travel Checklist for {trip.name}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={{padding: 8}}>
-              <Icon name="x-mark" style={{width: 24, height: 24}} color="#9ca3af" />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView>
-              <ChecklistSection 
-                  title="Packing List"
-                  icon="suitcase"
-                  items={currentChecklist.packingList}
-                  onToggle={(index) => handleToggle('packingList', index)}
-              />
-              <ChecklistSection 
-                  title="Essential Documents"
-                  icon="document"
-                  items={currentChecklist.documents.items}
-                  onToggle={(index) => handleToggle('documents', index)}
-              >
-                  {currentChecklist.documents.sources && currentChecklist.documents.sources.length > 0 && (
-                      <View style={localStyles.sourcesContainer}>
-                          <Text style={localStyles.sourcesTitle}>Sources</Text>
-                          {currentChecklist.documents.sources.map((source, i) => (
-                              <Text key={i} style={localStyles.sourceLink}>{source.title || source.uri}</Text>
-                          ))}
-                      </View>
-                  )}
-              </ChecklistSection>
-               <ChecklistSection 
-                  title="Local Essentials"
-                  icon="lightbulb"
-                  items={currentChecklist.localEssentials}
-                  onToggle={(index) => handleToggle('localEssentials', index)}
-              />
-          </ScrollView>
-        </View>
-      </TouchableOpacity>
-    </Modal>
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fade-in" onClick={onClose}>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <header className="flex justify-between items-center p-4 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                    <Icon name="checklist" className="h-7 w-7 text-blue-600" />
+                    <h2 className="text-xl font-bold text-slate-800">Travel Checklist for {trip.name}</h2>
+                </div>
+                <button onClick={onClose} className="p-2 rounded-full text-slate-400 hover:bg-slate-100" aria-label="Close">
+                    <Icon name="x-mark" className="h-6 w-6" />
+                </button>
+            </header>
+            
+            <main className="flex-grow overflow-y-auto bg-slate-50">
+                <ChecklistSection title="Packing List" icon="briefcase" items={localChecklist.packingList} onToggle={(index) => handleToggle('packingList', index)} />
+                <ChecklistSection title="Essential Documents" icon="document" items={localChecklist.documents.items} onToggle={(index) => handleToggle('documents', index)}>
+                   {localChecklist.documents.sources && localChecklist.documents.sources.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-200">
+                            <h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sources for visa/entry requirements</h5>
+                            <ul className="mt-1 space-y-1">
+                                {localChecklist.documents.sources.slice(0, 3).map((source, i) => (
+                                    <li key={i}>
+                                        <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate block">
+                                            {source.title || source.uri}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </ChecklistSection>
+                <ChecklistSection title="Local Essentials" icon="map" items={localChecklist.localEssentials} onToggle={(index) => handleToggle('localEssentials', index)} />
+            </main>
+        </div>
+    </div>
   );
 };
-
-const localStyles = StyleSheet.create({
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    sectionContainer: {
-        borderBottomWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    sectionHeader: {
-        width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#1e293b',
-    },
-    sectionContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 16,
-    },
-    checklistItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-    },
-    checkboxChecked: {
-        width: 20,
-        height: 20,
-        backgroundColor: '#2563eb',
-        borderRadius: 4,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    checkboxUnchecked: {
-        width: 20,
-        height: 20,
-        borderWidth: 2,
-        borderColor: '#94a3b8',
-        borderRadius: 4,
-    },
-    itemText: {
-        marginLeft: 12,
-        fontSize: 14,
-        color: '#334155',
-    },
-    itemTextChecked: {
-        color: '#94a3b8',
-        textDecorationLine: 'line-through',
-    },
-    sourcesContainer: {
-        marginTop: 16,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    sourcesTitle: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748b',
-        textTransform: 'uppercase',
-    },
-    sourceLink: {
-        fontSize: 12,
-        color: '#2563eb',
-        textDecorationLine: 'underline',
-        marginTop: 4,
-    }
-});
 
 export default ChecklistModal;

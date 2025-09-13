@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { UserProfile } from '../types';
 import { Icon } from './Icon';
-import { styles } from './styles';
 
 interface SearchBarProps {
   onSearch: (results: any[]) => void;
@@ -20,90 +18,62 @@ enum SearchType {
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onLoading, onError, userProfile }) => {
   const [searchType, setSearchType] = useState<SearchType>(SearchType.Flights);
 
-  const handleSearch = (e: any) => {
+  const handleSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     onLoading(true);
     onError("Please use the Chat Assistant to perform searches. The standard search bar is for demonstration purposes.");
     onSearch([]);
     onLoading(false);
   };
-
-  const renderFlightForm = () => (
-    <View style={localStyles.formContainer}>
-        {/* Form fields would be implemented here */}
-        <TouchableOpacity onPress={handleSearch} style={[styles.button, styles.buttonPrimary, { width: '100%'}]}>
-           <Icon name="search" style={{ marginRight: 8, width: 20, height: 20 }} color="white" />
-           <Text style={styles.buttonText}>Search</Text>
-        </TouchableOpacity>
-    </View>
+  
+  const TabButton: React.FC<{
+    type: SearchType;
+    icon: string;
+    children: React.ReactNode;
+  }> = ({ type, icon, children }) => (
+    <button
+      onClick={() => setSearchType(type)}
+      className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+        searchType === type ? 'bg-white shadow-sm' : 'bg-transparent'
+      }`}
+    >
+      <Icon name={icon} className={`h-5 w-5 mr-2 ${searchType === type ? 'text-slate-800' : 'text-slate-600'}`} />
+      <span className={`text-sm font-medium ${searchType === type ? 'text-slate-800' : 'text-slate-600'}`}>{children}</span>
+    </button>
   );
 
-  // ... renderStayForm and renderCarForm would be similar
+
+  const renderForm = () => (
+    <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="md:col-span-3">
+            <p className="text-sm text-slate-600 text-center md:text-left">
+                The traditional search form is for visual demonstration. To find flights, stays, or cars, please use our powerful AI Chat Assistant.
+            </p>
+        </div>
+        <button
+            onClick={handleSearch}
+            className="w-full md:w-auto justify-center inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+        >
+           <Icon name="search" className="mr-2 h-5 w-5" />
+           Search
+        </button>
+    </div>
+  );
 
   return (
-    <View>
-      <View style={localStyles.tabsContainer}>
-        <TouchableOpacity onPress={() => setSearchType(SearchType.Flights)} style={[localStyles.tab, searchType === SearchType.Flights && localStyles.activeTab]}>
-          <Icon name="flight" style={localStyles.tabIcon} color={searchType === SearchType.Flights ? '#334155' : '#4b5563'} />
-          <Text style={localStyles.tabText}>Flights</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setSearchType(SearchType.Stays)} style={[localStyles.tab, searchType === SearchType.Stays && localStyles.activeTab]}>
-          <Icon name="hotel" style={localStyles.tabIcon} color={searchType === SearchType.Stays ? '#334155' : '#4b5563'} />
-          <Text style={localStyles.tabText}>Stays</Text>
-        </TouchableOpacity>
-         <TouchableOpacity onPress={() => setSearchType(SearchType.Cars)} style={[localStyles.tab, searchType === SearchType.Cars && localStyles.activeTab]}>
-          <Icon name="car" style={localStyles.tabIcon} color={searchType === SearchType.Cars ? '#334155' : '#4b5563'} />
-          <Text style={localStyles.tabText}>Cars</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={localStyles.formWrapper}>
-        {/* Simplified form for demonstration */}
-        {renderFlightForm()}
-      </View>
-    </View>
+    <div className="bg-white/50 border border-slate-200 rounded-lg shadow-lg backdrop-blur-sm">
+      <div className="p-2 bg-slate-100 rounded-t-lg">
+        <div className="flex space-x-1">
+          <TabButton type={SearchType.Flights} icon="flight">Flights</TabButton>
+          <TabButton type={SearchType.Stays} icon="hotel">Stays</TabButton>
+          <TabButton type={SearchType.Cars} icon="car">Cars</TabButton>
+        </div>
+      </div>
+      <div>
+        {renderForm()}
+      </div>
+    </div>
   );
 };
-
-const localStyles = StyleSheet.create({
-    tabsContainer: {
-        flexDirection: 'row',
-        backgroundColor: '#e5e7eb',
-        borderRadius: 8,
-        padding: 4,
-        alignSelf: 'flex-start',
-    },
-    tab: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 6,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    activeTab: {
-        backgroundColor: 'white',
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    },
-    tabIcon: {
-        width: 20,
-        height: 20,
-        marginRight: 8,
-    },
-    tabText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    formWrapper: {
-        padding: 16,
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderTopWidth: 0,
-        borderColor: '#e5e7eb',
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 8,
-        borderTopRightRadius: 8,
-    },
-    formContainer: {
-        // Add styles for form grid
-    }
-});
 
 export default React.memo(SearchBar);

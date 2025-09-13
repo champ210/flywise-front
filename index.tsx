@@ -1,21 +1,19 @@
-import { AppRegistry } from 'react-native';
-import { loadEnv } from './services/envLoader';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
 
-const startApp = async () => {
-  // Load environment variables before the app starts
-  loadEnv();
+const startApp = () => {
+  const rootElement = document.getElementById('root');
+  if (!rootElement) {
+    throw new Error("Could not find root element to mount the app");
+  }
 
-  // Dynamically import the main App component AFTER env vars are loaded
-  const App = (await import('./App')).default;
-
-  // Register the main component
-  AppRegistry.registerComponent('FlyWise.AI', () => App);
-  
-  // Start the application
-  AppRegistry.runApplication('FlyWise.AI', {
-    rootTag: document.getElementById('root'),
-  });
-  
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
   
   // Register Service Worker for offline capabilities
   if ('serviceWorker' in navigator) {

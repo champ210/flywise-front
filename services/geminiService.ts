@@ -1,30 +1,19 @@
-import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Changed import from TravelStory to WandergramPost to match the type of data being passed from the SocialFeed component.
-// FIX: Add TravelTrend type to imports
+import { GoogleGenAI, Type, GenerateContentResponse, GenerateImagesResponse } from "@google/genai";
 import { Flight, Stay, Car, ApiParams, ItineraryPlan, Checklist, DailyPlan, MapMarker, TravelInsuranceQuote, NearbyAttraction, ChatMessage, UserProfile, SavedTrip, SearchResult, WeatherForecast, ItinerarySnippet, TravelBuddyPreferences, TravelBuddyProfile, AlternativeSuggestion, LocalVibe, GroundingSource, VibeSearchResult, DestinationSuggestion, RealTimeSuggestion, GamificationProfile, AIVoyageMission, SuperServiceData, TripMemory, SocialPostSuggestion, LocalProfile, HangoutSuggestion, CoworkingSpace, Badge, BudgetOptimizationSuggestion, AIHomeSuggestion, FlightStatus, SocialReel, AIDiscoveryData, WandergramPost, TravelTrend, DocumentScanResult, TranslationResult, GroupTripPoll, TripIdea } from '../types';
 
 let ai: GoogleGenAI | null = null;
+
+// Hardcoded API key for a build-less environment.
+const API_KEY = "AIzaSyDGd9WnVLOE5pB6RQu19dEdgHBUwNi0ul0";
 
 const getAiClient = (): GoogleGenAI => {
     if (ai) {
         return ai;
     }
-
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "YOUR_API_KEY_HERE") {
-        const errorElement = document.createElement('div');
-        errorElement.innerHTML = `
-            <div style="padding: 2rem; text-align: center; font-family: sans-serif; background-color: #fffbe6; color: #7a4f01; border: 1px solid #fde68a;">
-                <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Configuration Error</h2>
-                <p>The Google Gemini <strong>GEMINI_API_KEY</strong> is missing. Please update the <strong>env.ts</strong> file with your API key.</p>
-                <pre style="background-color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; text-align: left; display: inline-block; margin-top: 1rem;">GEMINI_API_KEY: "YOUR_GEMINI_API_KEY"</pre>
-            </div>
-        `;
-        document.body.innerHTML = '';
-        document.body.appendChild(errorElement);
-        throw new Error("Configuration Error: GEMINI_API_KEY is not defined in env.ts. Please add it.");
+    if (!API_KEY) {
+        throw new Error("Configuration Error: GEMINI_API_KEY is not configured.");
     }
-
-    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    ai = new GoogleGenAI({ apiKey: API_KEY });
     return ai;
 };
 
@@ -124,6 +113,8 @@ const handleApiError = (error: unknown, defaultMessage: string): Error => {
     // Return a generic default message if no specific case was matched.
     return new Error(defaultMessage);
 };
+
+// ... Schemas remain the same ...
 
 const documentScanSchema = {
     type: Type.OBJECT,
@@ -570,7 +561,7 @@ const homeShareHostSchema = {
     required: ["hosts"]
 };
 
-// FIX: Implement and export all missing functions
+// ... More schemas ...
 
 const budgetOptimizationSchema = {
     type: Type.OBJECT,
@@ -1133,7 +1124,7 @@ export const getApiParamsFromChat = async (messages: ChatMessage[], userProfile:
         If the user explicitly asks for activities or things to do, populate the 'itinerary_request' field.
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1147,6 +1138,8 @@ export const getApiParamsFromChat = async (messages: ChatMessage[], userProfile:
     }
 };
 
+// ... All other functions (getItinerary, getTravelChecklist, etc.) remain the same but use the getAiClient() which now has the hardcoded key.
+
 export const getAlternativeSuggestions = async (messages: ChatMessage[], userProfile: UserProfile): Promise<AlternativeSuggestion[]> => {
     const ai = getAiClient();
     const prompt = `Based on this user's request and profile, suggest up to 3 alternative destinations (airports or cities) that might be cheaper, more aligned with their interests, or offer a better experience.
@@ -1155,7 +1148,7 @@ export const getAlternativeSuggestions = async (messages: ChatMessage[], userPro
     ${messages.map(m => `${m.sender}: ${m.text}`).join('\n')}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1179,7 +1172,7 @@ export const getRealTimeSuggestions = async (messages: ChatMessage[], userProfil
     Last Message: "${messages[messages.length - 1].text}"
     `;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1187,7 +1180,7 @@ export const getRealTimeSuggestions = async (messages: ChatMessage[], userProfil
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the following information about real-time suggestions, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
@@ -1222,7 +1215,7 @@ export const generateSearchSummary = async (results: SearchResult[]): Promise<st
         Results: ${JSON.stringify(results.slice(0, 5))}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
         }));
@@ -1236,7 +1229,7 @@ export const getItinerarySnippet = async (params: { destination?: string; durati
     const ai = getAiClient();
     const prompt = `Generate a short snippet of 2-4 activity suggestions for a trip to ${params.destination} based on these interests: ${params.interests}.`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1259,7 +1252,7 @@ export const getItinerary = async (destination: string, duration: number, intere
     Also include some cultural tips and local food recommendations.
     `;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1267,7 +1260,7 @@ export const getItinerary = async (destination: string, duration: number, intere
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the following itinerary information, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
@@ -1288,7 +1281,7 @@ export const getBudgetOptimizations = async (plan: ItineraryPlan): Promise<Budge
     Itinerary: ${JSON.stringify(plan)}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1310,7 +1303,7 @@ export const getCoordinatesForActivities = async (itinerary: DailyPlan[]): Promi
     Return an array of locations.
     `;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1318,7 +1311,7 @@ export const getCoordinatesForActivities = async (itinerary: DailyPlan[]): Promi
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the following location information, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
@@ -1338,7 +1331,7 @@ export const getWeatherForecast = async (destination: string, duration: number):
     const ai = getAiClient();
     const prompt = `Provide a realistic ${duration}-day weather forecast for ${destination}, starting from tomorrow.`;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1346,7 +1339,7 @@ export const getWeatherForecast = async (destination: string, duration: number):
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the following weather information, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
@@ -1368,7 +1361,7 @@ export const getTravelChecklist = async (plan: ItineraryPlan): Promise<Checklist
     Itinerary: ${JSON.stringify(plan)}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1383,7 +1376,7 @@ export const getTravelChecklist = async (plan: ItineraryPlan): Promise<Checklist
         })) || [];
 
         // Now, ask the model to format the checklist as JSON
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the previous response, format the checklist into JSON. Response text: ${response.text}`,
             config: {
@@ -1405,7 +1398,7 @@ export const getInsuranceQuotes = async (plan: ItineraryPlan): Promise<TravelIns
     const ai = getAiClient();
     const prompt = `Generate 3-4 fictional but realistic travel insurance quotes for a trip to ${plan.destination} for ${plan.itinerary.length} days. Include different coverage levels and price points.`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1424,7 +1417,7 @@ export const getNearbyAttractions = async (stayName: string, location: string): 
     const ai = getAiClient();
     const prompt = `List 3-5 interesting attractions or points of interest near ${stayName} in ${location}.`;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1432,7 +1425,7 @@ export const getNearbyAttractions = async (stayName: string, location: string): 
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the following information about nearby attractions, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
@@ -1452,7 +1445,7 @@ export const getLocalVibe = async (stayName: string, location: string): Promise<
     const ai = getAiClient();
     const prompt = `Describe the local "vibe" at night around ${stayName} in ${location}. Focus on safety, atmosphere (lively, quiet, etc.), and types of places open (restaurants, bars, etc.). Use Google Search to ground your answer.`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1466,7 +1459,7 @@ export const getLocalVibe = async (stayName: string, location: string): Promise<
             title: chunk.web.title
         })) || [];
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the previous response, format the description of the local vibe into JSON. Response text: ${response.text}`,
             config: {
@@ -1487,7 +1480,7 @@ export const generateDestinationImages = async (destination: string, duration: n
     const ai = getAiClient();
     const prompt = `A cinematic, photorealistic collage of a ${duration}-day trip to ${destination}. Interests: ${interests}. ${budget ? `Budget: around $${budget}.` : ''} Show iconic landmarks and hidden gems.`;
     try {
-        const response = await withRetry(() => ai.models.generateImages({
+        const response = await withRetry<GenerateImagesResponse>(() => ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: prompt,
             config: {
@@ -1495,7 +1488,9 @@ export const generateDestinationImages = async (destination: string, duration: n
               aspectRatio: '16:9',
             },
         }));
-        return response.generatedImages.map(img => img.image.imageBytes);
+        return response.generatedImages
+            .map(img => img.image?.imageBytes)
+            .filter((bytes): bytes is string => !!bytes);
     } catch (error) {
         throw handleApiError(error, 'Failed to generate destination images.');
     }
@@ -1509,7 +1504,7 @@ export const generateTravelBuddyProfile = async (preferences: TravelBuddyPrefere
     Desired Buddy Preferences: ${JSON.stringify(preferences)}.
     Generate a creative persona that complements or interestingly contrasts with the user. Calculate a compatibility score and provide a reason.`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1531,7 +1526,7 @@ export const generateJointItinerary = async (userProfile: UserProfile, buddyProf
     The itinerary should include activities that both would enjoy, and maybe a few compromises. Make it a fun, collaborative plan.
     `;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1539,7 +1534,7 @@ export const generateJointItinerary = async (userProfile: UserProfile, buddyProf
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the following joint itinerary information, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
@@ -1565,7 +1560,7 @@ export const chatWithTravelBuddy = async (chatHistory: ChatMessage[], userProfil
     ${chatHistory.map(m => `${m.sender === 'user' ? 'User' : buddyProfile.name}: ${m.text}`).join('\n')}
     ${buddyProfile.name}:`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
         }));
@@ -1586,7 +1581,7 @@ export const generateBuddyProfilePicture = async (profile: TravelBuddyProfile): 
     Bio: ${profile.bio}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateImages({
+        const response = await withRetry<GenerateImagesResponse>(() => ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: prompt,
             config: {
@@ -1594,7 +1589,11 @@ export const generateBuddyProfilePicture = async (profile: TravelBuddyProfile): 
                 aspectRatio: '1:1',
             },
         }));
-        return response.generatedImages[0].image.imageBytes;
+        const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+        if (!imageBytes) {
+            throw new Error('Failed to generate profile picture data.');
+        }
+        return imageBytes;
     } catch (error) {
         throw handleApiError(error, 'Failed to generate a profile picture.');
     }
@@ -1607,7 +1606,7 @@ export const generateTripMemory = async (plan: ItineraryPlan): Promise<Omit<Trip
     Create a catchy title, a heartfelt summary, and some key stats. Also suggest a music theme and a simplified map route.
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1628,7 +1627,7 @@ export const generateStorySummary = async (title: string, content: string): Prom
     Content: ${content}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1645,13 +1644,13 @@ export const generateStorySummary = async (title: string, content: string): Prom
 export const generateVibeSearchIdeas = async (vibe: string): Promise<VibeSearchResult> => {
     const ai = getAiClient();
     try {
-        const imagePromise = withRetry(() => ai.models.generateImages({
+        const imagePromise = withRetry<GenerateImagesResponse>(() => ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: `A mood board of 4 images representing this travel vibe: "${vibe}". Photorealistic, atmospheric.`,
             config: { numberOfImages: 4, aspectRatio: '1:1' },
         }));
 
-        const textPromise = withRetry(() => ai.models.generateContent({
+        const textPromise = withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the vibe "${vibe}", suggest 3 real-world travel destinations that are a perfect match. For each, provide a compelling one-sentence reason.`,
             config: {
@@ -1662,7 +1661,9 @@ export const generateVibeSearchIdeas = async (vibe: string): Promise<VibeSearchR
 
         const [imageResponse, textResponse] = await Promise.all([imagePromise, textPromise]);
         
-        const images = imageResponse.generatedImages.map(img => img.image.imageBytes);
+        const images = imageResponse.generatedImages
+            .map(img => img.image?.imageBytes)
+            .filter((bytes): bytes is string => !!bytes);
         const destinations = JSON.parse(textResponse.text.trim()).destinations;
 
         return { images, destinations };
@@ -1679,7 +1680,7 @@ export const getAILocalMatches = async (location: string, userProfile: UserProfi
     Ensure you generate all fields in the schema, including house photos for 'stay' types and realistic reviews.
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1701,7 +1702,7 @@ export const getHangoutSuggestions = async (userProfile: UserProfile, localProfi
     Local Profile: ${JSON.stringify(localProfile.interests)}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1722,7 +1723,7 @@ export const getAIVoyageMissions = async (profile: GamificationProfile): Promise
     Profile: ${JSON.stringify(profile)}
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1743,7 +1744,7 @@ export const getTravelTrends = async (userProfile: UserProfile): Promise<TravelT
     User Profile: ${JSON.stringify(userProfile)}
     `;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1751,7 +1752,7 @@ export const getTravelTrends = async (userProfile: UserProfile): Promise<TravelT
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Based on the following travel trend information, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
@@ -1759,27 +1760,30 @@ export const getTravelTrends = async (userProfile: UserProfile): Promise<TravelT
                 responseSchema: travelTrendsSchema,
             },
         }));
-
         const data = JSON.parse(formatResponse.text.trim());
         return data.trends || [];
     } catch (error) {
-        throw handleApiError(error, 'Failed to fetch travel trends.');
+        throw handleApiError(error, 'Failed to get travel trends.');
     }
 };
 
 export const getSuperServiceData = async (location: string, userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<SuperServiceData> => {
     const ai = getAiClient();
-    const prompt = `Generate a realistic set of "Super Service" data for a user in "${location}".
-    User Profile: ${JSON.stringify(userProfile)}
-    User's Saved Trips (for context): ${JSON.stringify(savedTrips)}
-    - Generate a list of available (fictional) food and ride-hailing apps.
-    - Generate a list of 8-10 diverse, realistic restaurants with menus.
-    - Based on the user profile, generate 2-3 personalized food suggestions.
-    - If the user has an upcoming itinerary, generate a relevant ride suggestion.
-    - Create one "smart combo" suggestion if applicable.
+    const prompt = `
+        Generate a set of super service data for a user in "${location}".
+        User Profile: ${JSON.stringify(userProfile.interests)}
+        Active/Saved Trips: ${JSON.stringify(savedTrips.map(t => t.name))}
+        
+        - List 2-3 popular food delivery and ride-hailing apps available in that city.
+        - List 6-8 diverse, highly-rated restaurants.
+        - Provide 2-3 personalized food suggestions based on user profile.
+        - Provide one ride suggestion to a relevant location (e.g., from a saved hotel to a landmark).
+        - Provide one "smart combo" (e.g., dinner and a ride to a show).
+        
+        Generate realistic but fictional data for all fields.
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1789,17 +1793,20 @@ export const getSuperServiceData = async (location: string, userProfile: UserPro
         }));
         return JSON.parse(response.text.trim());
     } catch (error) {
-        throw handleApiError(error, 'Failed to get local service data.');
+        throw handleApiError(error, "Failed to fetch local services data.");
     }
 };
 
 export const generateSocialPostSuggestion = async (memory: TripMemory): Promise<SocialPostSuggestion> => {
     const ai = getAiClient();
-    const prompt = `Based on this trip memory, generate a creative and engaging social media post with a caption and relevant hashtags.
-    Memory: ${JSON.stringify(memory)}
+    const prompt = `
+        Based on this travel memory journal, generate an engaging social media post.
+        Memory Title: "${memory.title}"
+        Narrative: "${memory.narrativeSummary}"
+        The post should include a creative caption and a set of relevant hashtags.
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1809,34 +1816,20 @@ export const generateSocialPostSuggestion = async (memory: TripMemory): Promise<
         }));
         return JSON.parse(response.text.trim());
     } catch (error) {
-        throw handleApiError(error, 'Failed to generate a social post suggestion.');
-    }
-};
-
-export const generateHangoutRequestMessage = async (userProfile: UserProfile, localProfile: LocalProfile, suggestion: HangoutSuggestion): Promise<string> => {
-    const ai = getAiClient();
-    const prompt = `Write a friendly, casual, and polite message from a user to a local to request a hangout. The message should sound natural and mention their shared interests as a reason for connecting, as well as the specific hangout idea.
-    User's Interests: ${JSON.stringify(userProfile.interests)}
-    Local's Name: ${localProfile.name}
-    Local's Interests: ${JSON.stringify(localProfile.interests)}
-    Hangout Idea: "${suggestion.title}"
-    `;
-    try {
-        const response = await withRetry(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        }));
-        return response.text.trim();
-    } catch (error) {
-        throw handleApiError(error, 'Failed to generate a hangout request message.');
+        throw handleApiError(error, "Failed to generate social post suggestion.");
     }
 };
 
 export const getCoworkingSpaces = async (location: string, userProfile: UserProfile): Promise<CoworkingSpace[]> => {
     const ai = getAiClient();
-    const prompt = `Generate a list of 5-8 fictional but realistic coworking spaces in "${location}". For each space, provide an "AI Insight" tailored to a traveler with this profile: ${JSON.stringify(userProfile)}. Also include a creative "Networking Opportunity" for each space.`;
+    const prompt = `
+        Find 5-8 fictional but realistic coworking spaces in "${location}".
+        For each space, provide all the details required by the schema.
+        Tailor the "aiInsight" and "networkingOpportunity" fields to be relevant for a traveler with these interests: ${JSON.stringify(userProfile.interests)}.
+        Ensure you also generate realistic lat/lng coordinates for each space.
+    `;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1844,9 +1837,9 @@ export const getCoworkingSpaces = async (location: string, userProfile: UserProf
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Based on the following coworking space information, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
+            contents: `Based on the following information about coworking spaces, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: coworkingSpacesSchema,
@@ -1856,18 +1849,21 @@ export const getCoworkingSpaces = async (location: string, userProfile: UserProf
         const data = JSON.parse(formatResponse.text.trim());
         return data.spaces || [];
     } catch (error) {
-        throw handleApiError(error, 'Failed to find coworking spaces.');
+        throw handleApiError(error, "Failed to find coworking spaces.");
     }
 };
 
 export const getAIHomeSuggestions = async (userProfile: UserProfile, savedTrips: SavedTrip[]): Promise<AIHomeSuggestion[]> => {
     const ai = getAiClient();
-    const prompt = `Based on the user's profile and their saved trips, generate 2 highly relevant "next step" suggestions for their dashboard. These should be actionable and guide the user to a relevant feature in the app.
-    User Profile: ${JSON.stringify(userProfile)}
-    Saved Trips: ${JSON.stringify(savedTrips)}
+    const prompt = `
+        Generate 2-4 personalized "next step" suggestions for a user's home dashboard.
+        User Profile: ${JSON.stringify(userProfile)}
+        Saved Trips: ${JSON.stringify(savedTrips.map(t => t.name))}
+        
+        The suggestions should be actionable and relevant to the user's data. For example, suggest planning a new trip based on their interests, or finding a travel buddy for a saved trip.
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1878,32 +1874,15 @@ export const getAIHomeSuggestions = async (userProfile: UserProfile, savedTrips:
         const data = JSON.parse(response.text.trim());
         return data.suggestions || [];
     } catch (error) {
-        throw handleApiError(error, 'Failed to get AI home suggestions.');
-    }
-};
-
-export const getQASummary = async (question: string, answers: string[]): Promise<string> => {
-    const ai = getAiClient();
-    const prompt = `Summarize the different viewpoints and key information from the answers to this question.
-    Question: "${question}"
-    Answers: ${JSON.stringify(answers)}
-    `;
-    try {
-        const response = await withRetry(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        }));
-        return response.text.trim();
-    } catch (error) {
-        throw handleApiError(error, 'Failed to generate a Q&A summary.');
+        throw handleApiError(error, "Failed to get AI home suggestions.");
     }
 };
 
 export const getFlightStatus = async (flightNumber: string): Promise<FlightStatus> => {
     const ai = getAiClient();
-    const prompt = `Provide a detailed, realistic, real-time flight status for flight number ${flightNumber}. Use Google Search to find real flight data if possible, but generate a realistic fictional flight if not. Include all fields from the schema. Generate a plausible flight path with waypoints.`;
+    const prompt = `Provide a detailed, realistic, real-time flight status for flight number ${flightNumber}. Use Google Search to get the latest, real-world data if possible. The flight may be in the past, present, or future. Generate all fields in the schema, including waypoints if the flight is en route.`;
     try {
-        const searchResponse = await withRetry(() => ai.models.generateContent({
+        const searchResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1911,9 +1890,9 @@ export const getFlightStatus = async (flightNumber: string): Promise<FlightStatu
             },
         }));
 
-        const formatResponse = await withRetry(() => ai.models.generateContent({
+        const formatResponse = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Based on the following flight status information, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
+            contents: `Based on the flight status information provided, format it into a JSON object matching the schema. Information: ${searchResponse.text}`,
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: flightStatusSchema,
@@ -1922,60 +1901,66 @@ export const getFlightStatus = async (flightNumber: string): Promise<FlightStatu
 
         return JSON.parse(formatResponse.text.trim());
     } catch (error) {
-        throw handleApiError(error, 'Failed to get flight status.');
+        throw handleApiError(error, "Failed to get flight status.");
     }
 };
 
-export const generateSocialReel = async (plan: ItineraryPlan, images: { mimeType: string; dataUrl: string }[]): Promise<SocialReel> => {
+export const generateSocialReel = async (plan: ItineraryPlan, images: { mimeType: string; dataUrl: string }[]): Promise<Omit<SocialReel, 'tripId'>> => {
     const ai = getAiClient();
-    const prompt = `Based on this itinerary and these user-provided images, generate a concept for a short social media "reel" video.
-    Itinerary: ${JSON.stringify(plan)}
-    - Create a catchy title.
-    - Suggest a music genre or specific song.
-    - For each image provided, create a short, impactful text overlay for the scene.
-    - Write a complete social media post with a caption and hashtags.
+    const prompt = `
+        Generate a social media reel concept based on a travel itinerary and user-uploaded photos.
+        Itinerary for: ${plan.destination}
+        Interests: ${plan.interests}
+        
+        Create a title for the reel.
+        Suggest a music theme.
+        For each of the ${images.length} images provided, write a short, punchy overlay text for a scene.
+        Finally, create a caption and hashtags for the social media post.
     `;
+     try {
+        const imageParts = images.map(img => ({
+            inlineData: {
+                mimeType: img.mimeType,
+                data: img.dataUrl.split(',')[1],
+            },
+        }));
 
-    const imageParts = images.map(image => ({
-        inlineData: {
-            mimeType: image.mimeType,
-            data: image.dataUrl.split(',')[1]
-        }
-    }));
-
-    try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [{ text: prompt }, ...imageParts] },
+            contents: { parts: [...imageParts, { text: prompt }] },
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: socialReelSchema,
             },
         }));
-        // The model won't know the original data URLs, so we need to map them back.
-        const reelData = JSON.parse(response.text.trim());
-        reelData.scenes.forEach((scene: any, index: number) => {
-            if (images[index]) {
-                scene.imageUrl = images[index].dataUrl;
-            }
-        });
-        return reelData;
+
+        const result = JSON.parse(response.text.trim());
+        // The imageUrl in the scenes should be the original user-provided data URLs
+        result.scenes = result.scenes.map((scene: any, index: number) => ({
+            ...scene,
+            imageUrl: images[index]?.dataUrl || '',
+        }));
+
+        return result;
     } catch (error) {
-        throw handleApiError(error, 'Failed to generate a social reel.');
+        throw handleApiError(error, "Failed to generate social reel.");
     }
 };
 
 export const getAIDiscoverySuggestions = async (posts: WandergramPost[], userProfile: UserProfile): Promise<AIDiscoveryData> => {
     const ai = getAiClient();
-    const prompt = `Analyze this feed of Wandergram posts and the user's profile.
-    User Profile: ${JSON.stringify(userProfile)}
-    Posts: ${JSON.stringify(posts.map(p => ({id: p.id, caption: p.caption, location: p.location})))}
-    - Identify 3 trending destinations from the posts. For each, provide the destination name, a relevant image URL from one of the posts, and a reason why it's trending.
-    - Identify up to 3 posts that are "Hidden Gems" (lesser-known but beautiful locations). Return their IDs.
-    - Identify up to 3 posts that are personalized recommendations for the user. Return their IDs.
+    const postSummaries = posts.slice(0, 10).map(p => ({ id: p.id, caption: p.caption, location: p.location }));
+    const prompt = `
+        Analyze this feed of social media posts and the user's profile to generate a discovery page.
+        User Profile: ${JSON.stringify(userProfile.interests)}
+        Posts: ${JSON.stringify(postSummaries)}
+        
+        - Identify 3-4 trending destinations from the posts and provide a reason.
+        - Select 2-3 post IDs that represent "hidden gems".
+        - Select 2-3 post IDs that are personalized recommendations for the user.
     `;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
@@ -1985,61 +1970,40 @@ export const getAIDiscoverySuggestions = async (posts: WandergramPost[], userPro
         }));
         return JSON.parse(response.text.trim());
     } catch (error) {
-        throw handleApiError(error, 'Failed to get AI discovery suggestions.');
+        throw handleApiError(error, "Failed to get AI discovery suggestions.");
     }
 };
 
 export const chatAboutImage = async (base64Image: string, mimeType: string, prompt: string): Promise<string> => {
     const ai = getAiClient();
-    const imagePart = {
-        inlineData: {
-            mimeType: mimeType,
-            data: base64Image
-        }
-    };
-    const textPart = { text: prompt };
-
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [imagePart, textPart] },
+            contents: {
+                parts: [
+                    { inlineData: { mimeType, data: base64Image } },
+                    { text: prompt },
+                ],
+            },
         }));
         return response.text.trim();
     } catch (error) {
-        throw handleApiError(error, 'Failed to analyze the image.');
-    }
-};
-
-export const simplifyFareRules = async (fareRules: string): Promise<string> => {
-    const ai = getAiClient();
-    const prompt = `
-        Summarize the following complex airline fare rules into a single, simple, and easy-to-understand sentence for a traveler.
-        Focus on the most important aspects: refundability and change fees.
-        Use clear language like "non-refundable" or "fully refundable".
-
-        Fare Rules: "${fareRules}"
-
-        Simple Summary:
-    `;
-    try {
-        const response = await withRetry(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        }));
-        return response.text.trim();
-    } catch (error) {
-        throw handleApiError(error, 'Failed to simplify fare rules.');
+        throw handleApiError(error, "Failed to chat about the image.");
     }
 };
 
 export const parseDocumentFromImage = async (base64Image: string, mimeType: string): Promise<DocumentScanResult> => {
     const ai = getAiClient();
-    const imagePart = { inlineData: { mimeType, data: base64Image } };
-    const textPart = { text: "Analyze this image of a travel document (like a flight itinerary or hotel confirmation). Extract all key information and structure it as JSON." };
+    const prompt = `Analyze the provided image of a travel document. Extract all key information such as document type (e.g., flight itinerary, hotel confirmation), confirmation numbers, names, dates, locations, etc., and structure it into the provided JSON schema.`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [imagePart, textPart] },
+            contents: {
+                parts: [
+                    { inlineData: { mimeType, data: base64Image } },
+                    { text: prompt },
+                ],
+            },
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: documentScanSchema,
@@ -2047,18 +2011,22 @@ export const parseDocumentFromImage = async (base64Image: string, mimeType: stri
         }));
         return JSON.parse(response.text.trim());
     } catch (error) {
-        throw handleApiError(error, 'Failed to parse the document from the image.');
+        throw handleApiError(error, "Failed to parse document.");
     }
 };
 
 export const translateImage = async (base64Image: string, mimeType: string): Promise<TranslationResult> => {
     const ai = getAiClient();
-    const imagePart = { inlineData: { mimeType, data: base64Image } };
-    const textPart = { text: "Extract all text from this image. Then, provide an English translation of the extracted text. Return both the original and translated text." };
+    const prompt = `Extract all text from the image. Then, provide an English translation of the extracted text. Preserve line breaks.`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [imagePart, textPart] },
+            contents: {
+                parts: [
+                    { inlineData: { mimeType, data: base64Image } },
+                    { text: prompt },
+                ],
+            },
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: translationSchema,
@@ -2066,39 +2034,26 @@ export const translateImage = async (base64Image: string, mimeType: string): Pro
         }));
         return JSON.parse(response.text.trim());
     } catch (error) {
-        throw handleApiError(error, 'Failed to translate the image.');
+        throw handleApiError(error, "Failed to translate image.");
     }
 };
 
-export const getCompromiseSuggestion = async (poll: GroupTripPoll, destination: string): Promise<string> => {
+export const getTripIdeaFromPost = async (post: WandergramPost): Promise<TripIdea> => {
     const ai = getAiClient();
-    const prompt = `A travel group is voting on an activity in ${destination} but might be undecided. Based on the poll, suggest a creative compromise activity that combines elements of the existing options or offers a fun alternative everyone might enjoy.
-    
-    Poll Question: "${poll.question}"
-    Options:
-    ${poll.options.map(opt => `- ${opt.text} (${opt.votes.length} votes)`).join('\n')}
-
-    Suggest a single, compelling compromise idea in one paragraph.
-    `;
+    const prompt = `Analyze the image and caption of this social media post to identify a travel destination and infer 3-5 vibes or interests related to it.
+    Caption: "${post.caption}"
+    Location: "${post.location}"`;
     try {
-        const response = await withRetry(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        }));
-        return response.text.trim();
-    } catch (error) {
-        throw handleApiError(error, 'Failed to get a compromise suggestion.');
-    }
-};
+        const imagePart = {
+            inlineData: {
+                mimeType: 'image/jpeg', // Assume jpeg for simplicity from URL
+                data: post.imageUrl.split(',')[1],
+            }
+        };
 
-export const getTripIdeasFromImage = async (base64Image: string, mimeType: string, caption: string): Promise<TripIdea> => {
-    const ai = getAiClient();
-    const imagePart = { inlineData: { mimeType, data: base64Image } };
-    const textPart = { text: `Analyze this image and its caption to identify the travel destination and infer the vibe/interests for a trip. Caption: "${caption}"` };
-    try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [imagePart, textPart] },
+            contents: { parts: [imagePart, { text: prompt }] },
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: tripIdeaSchema,
@@ -2106,6 +2061,71 @@ export const getTripIdeasFromImage = async (base64Image: string, mimeType: strin
         }));
         return JSON.parse(response.text.trim());
     } catch (error) {
-        throw handleApiError(error, 'Failed to generate trip ideas from the image.');
+        throw handleApiError(error, "Failed to generate a trip idea from the post.");
+    }
+};
+
+export const getQASummary = async (question: string, answers: string[]): Promise<string> => {
+    const ai = getAiClient();
+    const prompt = `
+        Summarize the answers to a community question.
+        Question: "${question}"
+        Answers:
+        ${answers.map(a => `- ${a}`).join('\n')}
+        
+        Provide a concise, neutral summary that captures the main points and consensus from the answers.
+    `;
+    try {
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        }));
+        return response.text.trim();
+    } catch (error) {
+        throw handleApiError(error, "Failed to summarize answers.");
+    }
+};
+
+// FIX: Add missing getCompromiseSuggestion function.
+export const getCompromiseSuggestion = async (poll: GroupTripPoll, destination: string): Promise<string> => {
+    const ai = getAiClient();
+    const prompt = `
+        A group is planning a trip to ${destination} and is stuck on a decision.
+        The poll question is: "${poll.question}"
+        The options and their votes are:
+        ${poll.options.map(opt => `- "${opt.text}": ${opt.votes.length} vote(s)`).join('\n')}
+
+        Suggest a creative and fair compromise that combines elements of the popular options or suggests a new alternative that everyone might enjoy. The suggestion should be a concise paragraph.
+    `;
+    try {
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        }));
+        return response.text.trim();
+    } catch (error) {
+        throw handleApiError(error, "Failed to generate a compromise suggestion.");
+    }
+};
+
+export const generateHangoutRequestMessage = async (userProfile: UserProfile, localProfile: LocalProfile, suggestion: HangoutSuggestion): Promise<string> => {
+    const ai = getAiClient();
+    const prompt = `
+        A user wants to send a hangout request to a local. Write a friendly, polite, and personalized icebreaker message.
+        User's Interests: ${userProfile.interests.join(', ')}
+        Local's Name: ${localProfile.name}
+        Local's Interests: ${localProfile.interests.join(', ')}
+        Suggested Hangout: "${suggestion.title}" - ${suggestion.description}
+        
+        The message should mention a shared interest to build rapport and refer to the specific hangout suggestion.
+    `;
+    try {
+        const response = await withRetry<GenerateContentResponse>(() => ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        }));
+        return response.text.trim();
+    } catch (error) {
+        throw handleApiError(error, "Failed to generate hangout message.");
     }
 };

@@ -1,12 +1,7 @@
-// This component has been converted to React Native Web.
-// Abridged for brevity, but all HTML elements are replaced with RN primitives,
-// and styles are applied from the stylesheet.
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { ChatMessage, UserProfile, SavedTrip, Flight, Stay, Car } from '../types';
 import ResultsList from './ResultsList';
 import { Icon } from './Icon';
-import { styles } from './styles';
 
 interface ChatInterfaceProps {
   onSaveTrip: (tripData: Omit<SavedTrip, 'id' | 'createdAt'>) => void;
@@ -25,60 +20,46 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSaveTrip, userProfile, 
   ]);
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
+  }, [messages]);
 
   // All logic handlers remain the same.
 
   return (
-    <View style={localStyles.container}>
-      <ScrollView 
-        ref={scrollViewRef}
-        style={localStyles.messageContainer}
-        contentContainerStyle={localStyles.messageContentContainer}
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+    <div className="flex flex-col h-full bg-white">
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-4"
       >
         {messages.map((msg) => (
-          <View key={msg.id} style={[localStyles.messageRow, msg.sender === 'user' && localStyles.userMessageRow]}>
-            {msg.sender === 'ai' && <View style={localStyles.aiAvatar}><Icon name="logo" style={{width: 24, height: 24}} color="white" /></View>}
-            <View style={[localStyles.bubble, msg.sender === 'user' ? localStyles.userBubble : localStyles.aiBubble]}>
-              <Text style={msg.sender === 'user' ? localStyles.userText : localStyles.aiText}>{msg.text}</Text>
-            </View>
-            {msg.sender === 'user' && <View style={localStyles.userAvatar}><Icon name="user" style={{width: 24, height: 24}} color="#4b5563" /></View>}
-          </View>
+          <div key={msg.id} className={`flex items-start gap-4 mb-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
+            {msg.sender === 'ai' && <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0"><Icon name="logo" className="w-6 h-6 text-white" /></div>}
+            <div className={`p-4 rounded-3xl max-w-[80%] ${msg.sender === 'user' ? 'bg-blue-600 text-white rounded-br-lg' : 'bg-slate-100 text-slate-800 rounded-bl-lg'}`}>
+              <p className="text-sm">{msg.text}</p>
+            </div>
+            {msg.sender === 'user' && <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0"><Icon name="user" className="w-6 h-6 text-slate-600" /></div>}
+          </div>
         ))}
-      </ScrollView>
-      <View style={localStyles.inputContainer}>
-        <TextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Ask me anything..."
-          style={localStyles.textInput}
-          editable={!isLoading}
-        />
-        <TouchableOpacity style={localStyles.sendButton} disabled={isLoading || !input.trim()}>
-          <Icon name="send" style={{width: 24, height: 24}} color="white" />
-        </TouchableOpacity>
-      </View>
-    </View>
+      </div>
+      <div className="p-4 border-t border-slate-200">
+        <form className="flex items-center space-x-3">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask me anything..."
+            className="flex-1 bg-slate-100 rounded-full py-3 px-5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={isLoading}
+          />
+          <button type="submit" className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center flex-shrink-0 disabled:bg-slate-400" disabled={isLoading || !input.trim()}>
+            <Icon name="send" className="w-6 h-6" />
+          </button>
+        </form>
+      </div>
+    </div>
   );
 };
-
-const localStyles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: 'white' },
-    messageContainer: { flex: 1 },
-    messageContentContainer: { padding: 16 },
-    messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 16 },
-    userMessageRow: { justifyContent: 'flex-end' },
-    aiAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' },
-    userAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center' },
-    bubble: { padding: 16, borderRadius: 24, maxWidth: '80%' },
-    userBubble: { backgroundColor: '#2563eb', borderBottomRightRadius: 4 },
-    aiBubble: { backgroundColor: '#f3f4f6', borderBottomLeftRadius: 4 },
-    userText: { color: 'white', fontSize: 14 },
-    aiText: { color: '#1f2937', fontSize: 14 },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', padding: 16, borderTopWidth: 1, borderColor: '#e5e7eb' },
-    textInput: { flex: 1, backgroundColor: '#f3f4f6', borderRadius: 9999, paddingVertical: 12, paddingHorizontal: 20, fontSize: 14 },
-    sendButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', marginLeft: 12 },
-});
 
 export default React.memo(ChatInterface);
