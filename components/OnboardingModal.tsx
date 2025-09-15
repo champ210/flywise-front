@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import { Icon } from './Icon';
+import { Icon } from '@/components/Icon';
 
 interface OnboardingModalProps {
   onClose: () => void;

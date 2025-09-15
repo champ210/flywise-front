@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { GroupTrip } from '../types';
-import GroupTripCard from './GroupTripCard';
-import GroupTripDetail from './GroupTripDetail';
-import { Icon } from './Icon';
-import CreateGroupTripModal from './CreateGroupTripModal';
-import * as xanoService from '../services/xanoService';
-import GroupTripCardSkeleton from './skeletons/GroupTripCardSkeleton';
+import { GroupTrip } from '@/types';
+import GroupTripCard from '@/components/GroupTripCard';
+import GroupTripDetail from '@/components/GroupTripDetail';
+import { Icon } from '@/components/Icon';
+import CreateGroupTripModal from '@/components/CreateGroupTripModal';
+import * as xanoService from '@/services/xanoService';
+import GroupTripCardSkeleton from '@/components/skeletons/GroupTripCardSkeleton';
 
 const GroupPlanning: React.FC = () => {
   const [trips, setTrips] = useState<GroupTrip[]>([]);

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Community } from '../types';
-import { Icon } from './Icon';
+import { Community } from '@/types';
+import { Icon } from '@/components/Icon';
 
 interface CommunityCardProps {
   community: Community;

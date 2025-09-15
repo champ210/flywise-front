@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { SavedTrip, Checklist, ChecklistItem } from '../types';
-import { Icon } from './Icon';
+import { SavedTrip, Checklist, ChecklistItem } from '@/types';
+import { Icon } from '@/components/Icon';
 
 interface ChecklistModalProps {
   trip: SavedTrip;

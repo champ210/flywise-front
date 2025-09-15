@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { SearchResult, Flight, Stay, Car } from '../types';
-import { Icon } from './Icon';
+import { SearchResult, Flight, Stay, Car } from '@/types';
+import { Icon } from '@/components/Icon';
 
 interface FilterSidebarProps {
   results: SearchResult[];

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Car } from '../types';
-import { Icon } from './Icon';
+import { Car } from '@/types';
+import { Icon } from '@/components/Icon';
 
 interface CarCardProps {
   car: Car;

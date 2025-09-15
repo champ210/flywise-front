@@ -1,6 +1,6 @@
 import React from 'react';
-import LoadingSpinner from './LoadingSpinner';
-import { Icon } from './Icon';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { Icon } from '@/components/Icon';
 
 interface LoadingOverlayProps {
   message: string;

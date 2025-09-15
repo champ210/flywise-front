@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ExchangeRates } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { ExchangeRates } from '@/types';
+import { Icon } from '@/components/Icon';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const CURRENCIES = {
     "AED": "🇦🇪", "AFN": "🇦🇫", "ALL": "🇦🇱", "AMD": "🇦🇲", "ARS": "🇦🇷", "AUD": "🇦🇺", "AZN": "🇦🇿", 

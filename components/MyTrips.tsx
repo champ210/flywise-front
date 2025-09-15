@@ -1,13 +1,14 @@
 
+
 import React, { useState, useRef } from 'react';
-import { SavedTrip, Checklist, ItineraryPlan, TravelInsuranceQuote } from '../types';
-import { Icon } from './Icon';
-import ComparisonView from './ComparisonView';
-import ChecklistModal from './ChecklistModal';
-import InsuranceModal from './InsuranceModal';
-import { getTravelChecklist, getInsuranceQuotes } from '../services/geminiService';
-import LoadingSpinner from './LoadingSpinner';
-import LiveTripDashboard from './LiveTripDashboard';
+import { SavedTrip, Checklist, ItineraryPlan, TravelInsuranceQuote } from '@/types';
+import { Icon } from '@/components/Icon';
+import ComparisonView from '@/components/ComparisonView';
+import ChecklistModal from '@/components/ChecklistModal';
+import InsuranceModal from '@/components/InsuranceModal';
+import { getTravelChecklist, getInsuranceQuotes } from '@/services/geminiService';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import LiveTripDashboard from '@/components/LiveTripDashboard';
 
 interface MyTripsProps {
   savedTrips: SavedTrip[];

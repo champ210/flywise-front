@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Community } from '../types';
-import CommunityCard from './CommunityCard';
-import CommunityDetail from './CommunityDetail';
-import { Icon } from './Icon';
-import CreateCommunityModal from './CreateCommunityModal';
-import * as xanoService from '../services/xanoService';
-import CommunityCardSkeleton from './skeletons/CommunityCardSkeleton';
+import { Community } from '@/types';
+import CommunityCard from '@/components/CommunityCard';
+import CommunityDetail from '@/components/CommunityDetail';
+import { Icon } from '@/components/Icon';
+import CreateCommunityModal from '@/components/CreateCommunityModal';
+import * as xanoService from '@/services/xanoService';
+import CommunityCardSkeleton from '@/components/skeletons/CommunityCardSkeleton';
 
 const TravelCommunities: React.FC = () => {
   const [communities, setCommunities] = useState<Community[]>([]);

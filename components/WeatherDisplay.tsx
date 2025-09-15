@@ -1,6 +1,6 @@
 import React from 'react';
-import { WeatherForecast, DailyForecast, WeatherIcon } from '../types';
-import { Icon } from './Icon';
+import { WeatherForecast, DailyForecast, WeatherIcon } from '@/types';
+import { Icon } from '@/components/Icon';
 
 const WeatherCard: React.FC<{ dayForecast: DailyForecast }> = ({ dayForecast }) => {
   const getIconName = (icon: WeatherIcon): string => {

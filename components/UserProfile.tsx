@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { UserProfile as UserProfileType, Car } from '../types';
-import { Icon } from './Icon';
+import { UserProfile as UserProfileType, Car } from '@/types';
+import { Icon } from '@/components/Icon';
 
 interface UserProfileProps {
   profile: UserProfileType;

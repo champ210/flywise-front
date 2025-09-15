@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapMarker, Waypoint } from '../types';
+import { MapMarker, Waypoint } from '@/types';
 
 interface MapViewProps {
   markers: MapMarker[];

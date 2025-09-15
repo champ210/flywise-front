@@ -1,12 +1,14 @@
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, SavedTrip, TravelBuddyPreferences, TravelBuddyProfile, ItineraryPlan, TravelStyle, BudgetLevel, ChatMessage } from '../types';
-import { generateTravelBuddyProfile, generateJointItinerary, chatWithTravelBuddy, generateBuddyProfilePicture } from '../services/geminiService';
-import { Icon } from './Icon';
-import LoadingOverlay from './LoadingOverlay';
-import ItineraryDisplay from './ItineraryDisplay';
-import LoadingSpinner from './LoadingSpinner';
+import { UserProfile, SavedTrip, TravelBuddyPreferences, TravelBuddyProfile, ItineraryPlan, TravelStyle, BudgetLevel, ChatMessage } from '@/types';
+import { generateTravelBuddyProfile, generateJointItinerary, chatWithTravelBuddy, generateBuddyProfilePicture } from '@/services/geminiService';
+import { Icon } from '@/components/Icon';
+import LoadingOverlay from '@/components/LoadingOverlay';
+import ItineraryDisplay from '@/components/ItineraryDisplay';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface TravelBuddyProps {
   userProfile: UserProfile;

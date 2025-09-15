@@ -1,12 +1,12 @@
 import React from 'react';
-import { SearchResult, Flight, Stay, Car } from '../types';
-import FlightCard from './FlightCard';
-import StayCard from './StayCard';
-import CarCard from './CarCard';
-import { Icon } from './Icon';
-import FlightCardSkeleton from './skeletons/FlightCardSkeleton';
-import StayCardSkeleton from './skeletons/StayCardSkeleton';
-import CarCardSkeleton from './skeletons/CarCardSkeleton';
+import { SearchResult, Flight, Stay, Car } from '@/types';
+import FlightCard from '@/components/FlightCard';
+import StayCard from '@/components/StayCard';
+import CarCard from '@/components/CarCard';
+import { Icon } from '@/components/Icon';
+import FlightCardSkeleton from '@/components/skeletons/FlightCardSkeleton';
+import StayCardSkeleton from '@/components/skeletons/StayCardSkeleton';
+import CarCardSkeleton from '@/components/skeletons/CarCardSkeleton';
 
 interface ResultsListProps {
   results: SearchResult[];

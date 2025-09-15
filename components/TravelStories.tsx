@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { TravelStory, SavedTrip, TripMemory, ItineraryPlan } from '../types';
-import StoryCard from './StoryCard';
-import MyMemories from './MyMemories';
-import TripMemoryDetail from './TripMemoryDetail';
-import { Icon } from './Icon';
-import { generateTripMemory } from '../services/geminiService';
-import LoadingOverlay from './LoadingOverlay';
+import { TravelStory, SavedTrip, TripMemory, ItineraryPlan } from '@/types';
+import StoryCard from '@/components/StoryCard';
+import MyMemories from '@/components/MyMemories';
+import TripMemoryDetail from '@/components/TripMemoryDetail';
+import { Icon } from '@/components/Icon';
+import { generateTripMemory } from '@/services/geminiService';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface MemoriesHubProps {
   stories: TravelStory[];

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MeetupEvent } from '../types';
-import EventCard from './EventCard';
-import EventDetail from './EventDetail';
-import { Icon } from './Icon';
-import CreateEventModal from './CreateEventModal';
-import * as xanoService from '../services/xanoService';
-import EventCardSkeleton from './skeletons/EventCardSkeleton';
+import { MeetupEvent } from '@/types';
+import EventCard from '@/components/EventCard';
+import EventDetail from '@/components/EventDetail';
+import { Icon } from '@/components/Icon';
+import CreateEventModal from '@/components/CreateEventModal';
+import * as xanoService from '@/services/xanoService';
+import EventCardSkeleton from '@/components/skeletons/EventCardSkeleton';
 
 const MeetupEvents: React.FC = () => {
   const [events, setEvents] = useState<MeetupEvent[]>([]);

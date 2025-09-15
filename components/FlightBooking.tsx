@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Flight, PassengerDetails, BookingConfirmation } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
-import * as xanoService from '../services/xanoService';
+import { Flight, PassengerDetails, BookingConfirmation } from '@/types';
+import { Icon } from '@/components/Icon';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import * as xanoService from '@/services/xanoService';
 
 interface FlightBookingProps {
   flight: Flight;

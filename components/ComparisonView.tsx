@@ -1,5 +1,5 @@
 import React from 'react';
-import { SavedTrip, SearchResult, ItineraryPlan, Flight, Stay, Car } from '../types';
+import { SavedTrip, SearchResult, ItineraryPlan, Flight, Stay, Car } from '@/types';
 
 interface ComparisonViewProps {
   tripsToCompare: SavedTrip[];

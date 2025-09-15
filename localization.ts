@@ -1,4 +1,5 @@
-import { Language } from './App';
+// FIX: The Language type is exported from the auth store, not the main App component.
+import { Language } from './stores/useAuthStore';
 
 const translations = {
   en: {

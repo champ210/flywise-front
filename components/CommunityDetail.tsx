@@ -1,9 +1,10 @@
 
+
 import React, { useState } from 'react';
-import { Community } from '../types';
-import { Icon } from './Icon';
-import CommunityPostCard from './CommunityPostCard';
-import CommunityQandA from './CommunityQandA';
+import { Community } from '@/types';
+import { Icon } from '@/components/Icon';
+import CommunityPostCard from '@/components/CommunityPostCard';
+import CommunityQandA from '@/components/CommunityQandA';
 
 interface CommunityDetailProps {
   community: Community;

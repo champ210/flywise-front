@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ChatMessage, UserProfile, SavedTrip, Flight, Stay, Car } from '../types';
-import ResultsList from './ResultsList';
-import { Icon } from './Icon';
+import { ChatMessage, UserProfile, SavedTrip, Flight, Stay, Car } from '@/types';
+import ResultsList from '@/components/ResultsList';
+import { Icon } from '@/components/Icon';
 
 interface ChatInterfaceProps {
   onSaveTrip: (tripData: Omit<SavedTrip, 'id' | 'createdAt'>) => void;

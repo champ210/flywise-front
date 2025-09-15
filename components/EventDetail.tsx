@@ -1,8 +1,9 @@
 
+
 import React, { useState } from 'react';
-import { MeetupEvent, RsvpStatus, MapMarker } from '../types';
-import { Icon } from './Icon';
-import MapView from './MapView';
+import { MeetupEvent, RsvpStatus, MapMarker } from '@/types';
+import { Icon } from '@/components/Icon';
+import MapView from '@/components/MapView';
 
 interface EventDetailProps {
   event: MeetupEvent;

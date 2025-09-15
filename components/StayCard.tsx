@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Stay } from '../types';
-import { Icon } from './Icon';
-import StayDetailsModal from './StayDetailsModal';
+import { Stay } from '@/types';
+import { Icon } from '@/components/Icon';
+import StayDetailsModal from '@/components/StayDetailsModal';
 
 interface StayCardProps {
   stay: Stay;

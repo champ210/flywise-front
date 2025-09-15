@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ItineraryPlan, SavedTrip, DailyPlan, WeatherForecast } from '../types';
-import { Icon } from './Icon';
-import MapView from './MapView';
-import { getCoordinatesForActivities, getWeatherForecast } from '../services/geminiService';
-import DestinationImageDisplay from './DestinationImageDisplay';
-import WeatherDisplay from './WeatherDisplay';
-import LoadingSpinner from './LoadingSpinner';
+import { ItineraryPlan, SavedTrip, DailyPlan, WeatherForecast } from '@/types';
+import { Icon } from '@/components/Icon';
+import MapView from '@/components/MapView';
+import { getCoordinatesForActivities, getWeatherForecast } from '@/services/geminiService';
+import DestinationImageDisplay from '@/components/DestinationImageDisplay';
+import WeatherDisplay from '@/components/WeatherDisplay';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface ItineraryDisplayProps {
   plan: ItineraryPlan;

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { TravelStory, Comment } from '../types';
-import { Icon } from './Icon';
-import { generateStorySummary } from '../services/geminiService';
-import LoadingSpinner from './LoadingSpinner';
+import { TravelStory, Comment } from '@/types';
+import { Icon } from '@/components/Icon';
+import { generateStorySummary } from '@/services/geminiService';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface StoryCardProps {
   story: TravelStory;

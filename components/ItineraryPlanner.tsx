@@ -1,11 +1,12 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { ItineraryPlan, SavedTrip, BudgetOptimizationSuggestion, TripIdea } from '../types';
-import { getItinerary, getBudgetOptimizations } from '../services/geminiService';
-import { Icon } from './Icon';
-import LoadingOverlay from './LoadingOverlay';
-import ItineraryDisplay from './ItineraryDisplay';
-import LoadingSpinner from './LoadingSpinner';
+import { ItineraryPlan, SavedTrip, BudgetOptimizationSuggestion, TripIdea } from '@/types';
+import { getItinerary, getBudgetOptimizations } from '@/services/geminiService';
+import { Icon } from '@/components/Icon';
+import LoadingOverlay from '@/components/LoadingOverlay';
+import ItineraryDisplay from '@/components/ItineraryDisplay';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface ItineraryPlannerProps {
   onSaveTrip: (tripData: Omit<SavedTrip, 'id' | 'createdAt'>) => void;

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, SavedTrip, AIHomeSuggestion, WandergramPost } from '../types';
 import { getAIHomeSuggestions } from '../services/geminiService';
 import { Icon } from './Icon';
-import { Tab } from '../App';
+// FIX: The Tab enum is exported from the navigation constants file.
+import { Tab } from '../navigation/constants';
 import ActiveTripCard from './ActiveTripCard';
 
 interface HomeDashboardProps {

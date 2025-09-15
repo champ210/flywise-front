@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Icon } from './Icon';
-import { Language } from '../App';
+import { Icon } from '@/components/Icon';
+// FIX: The Language type is exported from the auth store, not the main App component.
+import { Language } from '@/stores/useAuthStore';
 
 interface HeaderProps {
   onOpenVipModal: () => void;
