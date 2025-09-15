@@ -44,7 +44,6 @@ import { getTranslator } from './localization';
 import ExperienceDetail from './components/ExperienceDetail';
 import ExperienceBooking from './components/ExperienceBooking';
 import SearchBar from './components/SearchBar';
-import ProjectSpecification from './components/ProjectSpecification';
 
 export enum Tab {
   Home = 'Home',
@@ -67,7 +66,6 @@ export enum Tab {
   Passport = 'Passport',
   Search = 'Search',
   Profile = 'My Profile',
-  ProjectSpecification = 'Project Specification',
 }
 
 const DEFAULT_GAMIFICATION_PROFILE: GamificationProfile = {
@@ -114,7 +112,6 @@ const MORE_TABS = [
   { name: Tab.Passport, icon: 'passport' },
   { name: Tab.Search, icon: 'search' },
   { name: Tab.Profile, icon: 'user' },
-  { name: Tab.ProjectSpecification, icon: 'document' },
 ];
 
 export type Language = 'en' | 'fr' | 'ar';
@@ -248,7 +245,6 @@ export default function App() {
             case Tab.FlightTracker: return <FlightTracker />;
             case Tab.Discovery: return <TravelTrendRadar userProfile={userProfile} />;
             case Tab.Wandergram: return <Wandergram stories={wandergramStories} posts={wandergramPosts} userProfile={userProfile} onOpenCreateModal={() => setIsCreateWandergramPostModalOpen(true)} onAskAi={setPostForAskAi} onAddComment={handleWandergramComment} onEarnPoints={handleEarnPoints} conversations={wandergramConversations} activeView={activeWandergramView} activeConversationId={activeWandergramConversationId} onNavigate={handleNavigateWandergram} onSelectConversation={handleSelectWandergramConversation} onSendMessage={handleSendWandergramMessage} onPlanTrip={handlePlanTripFromPost} />;
-            case Tab.ProjectSpecification: return <ProjectSpecification />;
             default: return null;
           }
         })()}
