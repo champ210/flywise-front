@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SavedTrip, ItineraryPlan, SocialReel } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
-import { generateSocialReel } from '../services/geminiService';
+import { SavedTrip, ItineraryPlan, SocialReel } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { generateSocialReel } from '@/services/geminiService';
 
 interface SocialReelGeneratorModalProps {
   trip: SavedTrip & { data: ItineraryPlan };

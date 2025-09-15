@@ -1,7 +1,7 @@
 import React from 'react';
 import SearchBar from './SearchBar';
 import ResultsList from './ResultsList';
-import { useUIStore } from '../../stores/useUIStore';
+import { useUIStore } from '@/stores/useUIStore';
 
 const SearchPage: React.FC = () => {
     const { results, isLoading, error } = useUIStore();

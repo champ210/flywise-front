@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { UserProfile, GamificationProfile, Transaction, PaymentMethod } from '../types';
-import * as xanoService from '../services/xanoService';
+import { UserProfile, GamificationProfile, Transaction, PaymentMethod } from '@/types';
+import * as xanoService from '@/services/xanoService';
 
 export type Language = 'en' | 'fr' | 'ar';
 

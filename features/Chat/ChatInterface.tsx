@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ChatMessage, Flight, Stay, Car } from '../../types';
+import { ChatMessage, Flight, Stay, Car } from '@/types';
 import ResultsList from '../Search/ResultsList';
-import { Icon } from '../../components/common/Icon';
-import { useUIStore } from '../../stores/useUIStore';
-import { useAuthStore } from '../../stores/useAuthStore';
-import { useTripStore } from '../../stores/useTripStore';
+import { Icon } from '@/components/common/Icon';
+import { useUIStore } from '@/stores/useUIStore';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useTripStore } from '@/stores/useTripStore';
 
 const ChatInterface: React.FC = () => {
   const { userProfile } = useAuthStore();

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ItineraryPlan, BudgetOptimizationSuggestion } from '../../types';
-import { getItinerary, getBudgetOptimizations } from '../../services/geminiService';
-import { Icon } from '../../components/common/Icon';
-import LoadingOverlay from '../../components/common/LoadingOverlay';
-import ItineraryDisplay from './ItineraryDisplay';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { useUIStore } from '../../stores/useUIStore';
-import { useTripStore } from '../../stores/useTripStore';
-import { useAuthStore } from '../../stores/useAuthStore';
+import { ItineraryPlan, BudgetOptimizationSuggestion } from '@/types';
+import { getItinerary, getBudgetOptimizations } from '@/services/geminiService';
+import { Icon } from '@/components/common/Icon';
+import LoadingOverlay from '@/components/common/LoadingOverlay';
+import ItineraryDisplay from '@/components/ItineraryDisplay';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useUIStore } from '@/stores/useUIStore';
+import { useTripStore } from '@/stores/useTripStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 const ItineraryPlanner: React.FC = () => {
   const { isOffline } = useAuthStore();

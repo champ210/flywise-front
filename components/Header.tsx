@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 // FIX: The Language type is exported from the auth store, not the main App component.
 import { Language } from '@/stores/useAuthStore';
 

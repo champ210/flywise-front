@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SearchResult, Flight, Stay, Car } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface FilterSidebarProps {
   results: SearchResult[];

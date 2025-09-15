@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Icon } from './Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface CreateHostProfileProps {
   onCancel: () => void;

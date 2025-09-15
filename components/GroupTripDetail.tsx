@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { GroupTrip, GroupTripTask, GroupTripPoll, GroupTripExpense, DebtCalculation, GroupTripMember } from '../types';
-import { Icon } from './Icon';
-import { getCompromiseSuggestion } from '../services/geminiService';
-import LoadingSpinner from './LoadingSpinner';
+import { GroupTrip, GroupTripTask, GroupTripPoll, GroupTripExpense, DebtCalculation, GroupTripMember } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import { getCompromiseSuggestion } from '@/services/geminiService';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface GroupTripDetailProps {
   trip: GroupTrip;

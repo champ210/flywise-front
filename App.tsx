@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import Header from '@/components/layout/Header';
-import AppRouter from '@/navigation/AppRouter';
+import AppRouter from '@/features/TravelBuddy/AppRouter';
 import AppModals from '@/components/AppModals';
 import NavigationBar from '@/navigation/NavigationBar';
 
@@ -10,7 +10,7 @@ import { useTripStore } from '@/stores/useTripStore';
 import { useWandergramStore } from '@/stores/useWandergramStore';
 
 export default function App() {
-  
+
   // On initial app load, fetch all necessary user data and populate the stores.
   useEffect(() => {
     const initializeAppData = async () => {
@@ -18,9 +18,6 @@ export default function App() {
       const { fetchProfile, setLoggedIn } = useAuthStore.getState();
       const { fetchTrips } = useTripStore.getState();
       const { fetchPosts, fetchStories, fetchConversations } = useWandergramStore.getState();
-
-      // For demonstration, we'll assume the user is logged in.
-      setLoggedIn(true);
 
       if (useAuthStore.getState().isLoggedIn) {
         await Promise.all([
@@ -32,10 +29,10 @@ export default function App() {
         ]);
       }
     };
-    
+
     initializeAppData();
   }, []);
-  
+
   return (
     <div className="w-full max-w-7xl mx-auto bg-white/80 border border-slate-200/80 rounded-2xl shadow-2xl flex flex-col h-full max-h-[95vh]">
       <Header />

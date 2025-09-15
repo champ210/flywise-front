@@ -1,6 +1,6 @@
 import React from 'react';
-import { TravelTrend, SocialProof } from '../types';
-import { Icon } from './Icon';
+import { TravelTrend, SocialProof } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface TrendCardProps {
   trend: TravelTrend;

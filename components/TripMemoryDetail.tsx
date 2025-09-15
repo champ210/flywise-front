@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { TripMemory, MapMarker, SocialPostSuggestion } from '../types';
-import { Icon } from './Icon';
+import { TripMemory, MapMarker, SocialPostSuggestion } from '@/types';
+import { Icon } from '@/components/common/Icon';
 import MapView from './MapView';
 import SocialShareModal from './SocialShareModal';
-import { generateSocialPostSuggestion } from '../services/geminiService';
-import LoadingSpinner from './LoadingSpinner';
+import { generateSocialPostSuggestion } from '@/services/geminiService';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface TripMemoryDetailProps {
   memory: TripMemory;

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { WandergramPost } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { WandergramPost } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface CreateWandergramPostModalProps {
   onClose: () => void;

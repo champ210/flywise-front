@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
-import { Flight } from '../types';
-import { Icon } from './Icon';
+import { Flight } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface FlightComparisonModalProps {
   flights: Flight[];

@@ -1,9 +1,9 @@
 
 
 import React, { useState, useCallback } from 'react';
-import { TravelStory } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { TravelStory } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface CreateStoryModalProps {
   onClose: () => void;

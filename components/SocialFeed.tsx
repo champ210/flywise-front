@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { WandergramPost, UserProfile, AIDiscoveryData } from '../types';
+import { WandergramPost, UserProfile, AIDiscoveryData } from '@/types';
 import DiscoveryHub from './DiscoveryHub';
-import { getAIDiscoverySuggestions } from '../services/geminiService';
-import { Icon } from './Icon';
+import { getAIDiscoverySuggestions } from '@/services/geminiService';
+import { Icon } from '@/components/common/Icon';
 
 interface SocialFeedProps {
   posts: WandergramPost[];

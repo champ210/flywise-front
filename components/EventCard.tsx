@@ -1,6 +1,6 @@
 import React from 'react';
 import { MeetupEvent } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface EventCardProps {
   event: MeetupEvent;

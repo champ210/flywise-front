@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Badge } from '../types';
-import { Icon } from './Icon';
+import { Badge } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface BadgeCardProps {
   badge: Badge;

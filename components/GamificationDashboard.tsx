@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { GamificationProfile, Badge, VoyageurLevel } from '../types';
-import { Icon } from './Icon';
+import { GamificationProfile, Badge, VoyageurLevel } from '@/types';
+import { Icon } from '@/components/common/Icon';
 import BadgeCard from './BadgeCard';
 
 interface GamificationDashboardProps {

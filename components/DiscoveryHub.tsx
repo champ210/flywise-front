@@ -1,7 +1,7 @@
 import React from 'react';
-import { WandergramPost, AIDiscoveryData } from '../types';
-import WandergramPostComponent from './WandergramPost';
-import { Icon } from './Icon';
+import { WandergramPost, AIDiscoveryData } from '@/types';
+import WandergramPostComponent from '@/features/Wandergram/WandergramPost';
+import { Icon } from '@/components/common/Icon';
 import TrendCardSkeleton from './skeletons/TrendCardSkeleton';
 
 interface DiscoveryHubProps {

@@ -1,4 +1,4 @@
-import { SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, PassengerDetails, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, WandergramPost, WandergramStory, WandergramConversation, WandergramComment, WandergramChatMessage, Community, MeetupEvent, GroupTrip, Transaction, GamificationProfile, PaymentMethod, Experience } from '../types';
+import { SavedTrip, UserProfile as UserProfileType, Flight, Stay, Car, PassengerDetails, BookingConfirmation, StayBookingConfirmation, CarBookingConfirmation, WandergramPost, WandergramStory, WandergramConversation, WandergramComment, WandergramChatMessage, Community, MeetupEvent, GroupTrip, Transaction, GamificationProfile, PaymentMethod, Experience } from '@/types';
 
 const TOKEN_KEY = 'flywise_auth_token';
 const XANO_AUTH_URL = "https://x8ki-letl-twmt.n7.xano.io/api:eLc0elI2";

@@ -1,6 +1,6 @@
 import React from 'react';
-import { SavedTrip } from '../types';
-import { Icon } from './Icon';
+import { SavedTrip } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface ActiveTripCardProps {
   trip: SavedTrip;

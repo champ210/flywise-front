@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconProps } from '../../types';
+import { IconProps } from '@/types';
 
 // This component's implementation remains the same, but its location is changed
 // as part of the overall architectural refactoring. All previous icons are still here.

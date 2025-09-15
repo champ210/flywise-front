@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TripMemory, SocialPostSuggestion } from '../types';
-import { generateSocialPostSuggestion } from '../services/geminiService';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { TripMemory, SocialPostSuggestion } from '@/types';
+import { generateSocialPostSuggestion } from '@/services/geminiService';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface SocialShareModalProps {
   memory: TripMemory;

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { SavedTrip, TravelInsuranceQuote } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface InsuranceModalProps {
   trip: SavedTrip;

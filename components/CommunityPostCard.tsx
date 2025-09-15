@@ -1,6 +1,6 @@
 import React from 'react';
 import { CommunityPost } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface CommunityPostCardProps {
   post: CommunityPost;

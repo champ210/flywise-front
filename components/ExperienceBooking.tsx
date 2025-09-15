@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Experience } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { Experience } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface ExperienceBookingProps {
   experience: Experience;

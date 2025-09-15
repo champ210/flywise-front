@@ -2,18 +2,18 @@ import React from 'react';
 import { useUIStore } from '../stores/useUIStore';
 
 // Lazy load modals since they are not always visible
-const SubscriptionModal = React.lazy(() => import('../features/Subscription/SubscriptionModal'));
-const OnboardingModal = React.lazy(() => import('../features/Onboarding/OnboardingModal'));
-const LoginModal = React.lazy(() => import('../features/Auth/LoginModal'));
-const SignUpModal = React.lazy(() => import('../features/Auth/SignUpModal'));
-const CreateWandergramPostModal = React.lazy(() => import('../features/Wandergram/CreateWandergramPostModal'));
-const AskAiAboutPhotoModal = React.lazy(() => import('../features/Wandergram/AskAiAboutPhotoModal'));
-const DocumentScannerModal = React.lazy(() => import('../features/InTrip/DocumentScannerModal'));
-const TranslatorModal = React.lazy(() => import('../features/InTrip/TranslatorModal'));
-const ExperienceBooking = React.lazy(() => import('../features/Experiences/ExperienceBooking'));
-const FoodOrderModal = React.lazy(() => import('../features/SuperServices/components/FoodOrderModal'));
-const RideBookingModal = React.lazy(() => import('../features/SuperServices/components/RideBookingModal'));
-const HangoutRequestModal = React.lazy(() => import('../features/LocalConnections/components/HangoutRequestModal'));
+const SubscriptionModal = React.lazy(() => import('@/components/SubscriptionModal'));
+const OnboardingModal = React.lazy(() => import('@/components/OnboardingModal'));
+const LoginModal = React.lazy(() => import('@/components/LoginModal'));
+const SignUpModal = React.lazy(() => import('@/components/SignUpModal'));
+const CreateWandergramPostModal = React.lazy(() => import('@/components/CreateWandergramPostModal'));
+const AskAiAboutPhotoModal = React.lazy(() => import('@/components/AskAiAboutPhotoModal'));
+const DocumentScannerModal = React.lazy(() => import('@/components/DocumentScannerModal'));
+const TranslatorModal = React.lazy(() => import('@/components/TranslatorModal'));
+const ExperienceBooking = React.lazy(() => import('@/components/ExperienceBooking'));
+const FoodOrderModal = React.lazy(() => import('@/components/FoodOrderModal'));
+const RideBookingModal = React.lazy(() => import('@/components/RideBookingModal'));
+const HangoutRequestModal = React.lazy(() => import('@/components/HangoutRequestModal'));
 
 
 const AppModals: React.FC = () => {

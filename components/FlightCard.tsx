@@ -1,6 +1,6 @@
 import React from 'react';
 import { Flight } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface FlightCardProps {
   flight: Flight;

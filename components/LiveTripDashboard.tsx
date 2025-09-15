@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { SavedTrip, ItineraryPlan, DocumentScanResult } from '../types';
-import { Icon } from './Icon';
-import FlightTracker from './FlightTracker';
+import { SavedTrip, ItineraryPlan, DocumentScanResult } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import FlightTracker from '@/features/FlightTracker';
 
 interface LiveTripDashboardProps {
   trip: SavedTrip & { data: ItineraryPlan };

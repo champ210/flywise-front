@@ -4,8 +4,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Stay, NearbyAttraction, LocalVibe } from '@/types';
-import { Icon } from '@/components/Icon';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { getNearbyAttractions, getLocalVibe } from '@/services/geminiService';
 
 interface StayDetailsModalProps {

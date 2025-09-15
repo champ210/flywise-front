@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
-import * as xanoService from '../services/xanoService';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import * as xanoService from '@/services/xanoService';
 
 interface LoginModalProps {
   onClose: () => void;

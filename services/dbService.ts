@@ -1,4 +1,4 @@
-import { SavedTrip } from '../types';
+import { SavedTrip } from '@/types';
 
 const DB_NAME = 'FlyWiseDB';
 const STORE_NAME = 'savedTrips';

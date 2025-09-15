@@ -4,7 +4,7 @@ import { Flight, Stay, Car, ApiParams, ItineraryPlan, Checklist, DailyPlan, MapM
 let ai: GoogleGenAI | null = null;
 
 // Hardcoded API key for a build-less environment.
-const API_KEY = process.env.API_KEY || "AIzaSyDGd9WnVLOE5pB6RQu19dEdgHBUwNi0ul0";
+const API_KEY = process.env.GEMINI_API_KEY;
 
 const getAiClient = (): GoogleGenAI => {
     if (ai) {

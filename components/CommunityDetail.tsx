@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Community } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 import CommunityPostCard from '@/components/CommunityPostCard';
 import CommunityQandA from '@/components/CommunityQandA';
 

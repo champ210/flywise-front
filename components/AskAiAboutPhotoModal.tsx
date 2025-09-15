@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { WandergramPost } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
-import { chatAboutImage } from '../services/geminiService';
+import { WandergramPost } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { chatAboutImage } from '@/services/geminiService';
 
 interface AskAiAboutPhotoModalProps {
   post: WandergramPost;

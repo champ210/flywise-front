@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Icon } from './Icon';
-import { DocumentScanResult } from '../types';
-import { parseDocumentFromImage } from '../services/geminiService';
-import LoadingSpinner from './LoadingSpinner';
+import { Icon } from '@/components/common/Icon';
+import { DocumentScanResult } from '@/types';
+import { parseDocumentFromImage } from '@/services/geminiService';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface DocumentScannerModalProps {
   onClose: () => void;

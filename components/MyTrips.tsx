@@ -2,12 +2,12 @@
 
 import React, { useState, useRef } from 'react';
 import { SavedTrip, Checklist, ItineraryPlan, TravelInsuranceQuote } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 import ComparisonView from '@/components/ComparisonView';
 import ChecklistModal from '@/components/ChecklistModal';
 import InsuranceModal from '@/components/InsuranceModal';
 import { getTravelChecklist, getInsuranceQuotes } from '@/services/geminiService';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import LiveTripDashboard from '@/components/LiveTripDashboard';
 
 interface MyTripsProps {

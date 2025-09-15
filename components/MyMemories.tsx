@@ -1,6 +1,6 @@
 import React from 'react';
-import { SavedTrip, TripMemory, ItineraryPlan } from '../types';
-import { Icon } from './Icon';
+import { SavedTrip, TripMemory, ItineraryPlan } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface MyMemoriesProps {
   itineraryTrips: (SavedTrip & { data: ItineraryPlan })[];

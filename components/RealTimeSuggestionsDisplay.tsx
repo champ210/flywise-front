@@ -1,6 +1,6 @@
 import React from 'react';
-import { RealTimeSuggestion } from '../types';
-import { Icon } from './Icon';
+import { RealTimeSuggestion } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface RealTimeSuggestionsDisplayProps {
   suggestions: RealTimeSuggestion[];

@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { RideOption, RideBookingConfirmation } from '../types';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { RideOption, RideBookingConfirmation } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface RideBookingModalProps {
   ride: RideOption;

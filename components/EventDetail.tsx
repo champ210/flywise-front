@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { MeetupEvent, RsvpStatus, MapMarker } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 import MapView from '@/components/MapView';
 
 interface EventDetailProps {

@@ -1,6 +1,6 @@
 import React from 'react';
-import { LocalProfile } from '../types';
-import { Icon } from './Icon';
+import { LocalProfile } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface HostCardProps {
   local: LocalProfile;

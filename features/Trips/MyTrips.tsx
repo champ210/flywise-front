@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { Checklist, ItineraryPlan, TravelInsuranceQuote } from '../../types';
-import { Icon } from '../../components/common/Icon';
-import ComparisonView from './components/ComparisonView';
-import ChecklistModal from './components/ChecklistModal';
-import InsuranceModal from './components/InsuranceModal';
-import { getTravelChecklist, getInsuranceQuotes } from '../../services/geminiService';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import LiveTripDashboard from './components/LiveTripDashboard';
-import { useTripStore } from '../../stores/useTripStore';
-import { useAuthStore } from '../../stores/useAuthStore';
-import { useUIStore } from '../../stores/useUIStore';
+import { Checklist, ItineraryPlan, TravelInsuranceQuote } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import ComparisonView from '@/components/ComparisonView';
+import ChecklistModal from '@/components/ChecklistModal';
+import InsuranceModal from '@/components/InsuranceModal';
+import { getTravelChecklist, getInsuranceQuotes } from '@/services/geminiService';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import LiveTripDashboard from '@/components/LiveTripDashboard';
+import { useTripStore } from '@/stores/useTripStore';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useUIStore } from '@/stores/useUIStore';
 
 const MyTrips: React.FC = () => {
   const { savedTrips, deleteTrip, activeTrip } = useTripStore();

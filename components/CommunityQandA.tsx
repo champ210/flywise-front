@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { CommunityQuestion } from '../types';
-import { getQASummary } from '../services/geminiService';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { CommunityQuestion } from '@/types';
+import { getQASummary } from '@/services/geminiService';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface CommunityQandAProps {
   questions: CommunityQuestion[];

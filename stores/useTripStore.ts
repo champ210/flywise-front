@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { SavedTrip, DocumentScanResult } from '../types';
-import * as dbService from '../services/dbService';
+import { SavedTrip, DocumentScanResult } from '@/types';
+import * as dbService from '@/services/dbService';
 
 interface TripState {
   savedTrips: SavedTrip[];

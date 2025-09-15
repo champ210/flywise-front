@@ -1,7 +1,7 @@
 import React from 'react';
 import { Icon } from '../common/Icon';
-import { useAuthStore } from '../../stores/useAuthStore';
-import { useUIStore } from '../../stores/useUIStore';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { getTranslator } from '../../localization';
 
 const Header: React.FC = () => {

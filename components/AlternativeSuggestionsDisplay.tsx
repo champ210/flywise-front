@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { AlternativeSuggestion } from '../types';
-import { Icon } from './Icon';
+import { AlternativeSuggestion } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface AlternativeSuggestionsDisplayProps {
   suggestions: AlternativeSuggestion[];

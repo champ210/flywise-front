@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ItineraryPlan } from '@/types';
 import { generateDestinationImages } from '@/services/geminiService';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface DestinationImageDisplayProps {
   plan: ItineraryPlan;

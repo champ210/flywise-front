@@ -1,8 +1,8 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { Icon } from '@/components/Icon';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface SubscriptionModalProps {
   onClose: () => void;

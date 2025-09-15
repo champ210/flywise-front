@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 
 interface SearchBarProps {
   onSearch: (results: any[]) => void;

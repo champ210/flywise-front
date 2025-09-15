@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { LocalProfile, HangoutSuggestion, UserProfile } from '../types';
-import { generateHangoutRequestMessage } from '../services/geminiService';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { LocalProfile, HangoutSuggestion, UserProfile } from '@/types';
+import { generateHangoutRequestMessage } from '@/services/geminiService';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface HangoutRequestModalProps {
   local: LocalProfile;

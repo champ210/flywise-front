@@ -1,5 +1,5 @@
 
-import { Badge, VoyageurLevel } from '../types';
+import { Badge, VoyageurLevel } from '@/types';
 
 export const ALL_BADGES: Badge[] = [
   { id: 'first-booking', name: 'First Booking', description: 'Awarded for making your first flight or hotel booking.', icon: 'first-booking' },

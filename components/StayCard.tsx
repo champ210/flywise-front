@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Stay } from '@/types';
-import { Icon } from '@/components/Icon';
+import { Icon } from '@/components/common/Icon';
 import StayDetailsModal from '@/components/StayDetailsModal';
 
 interface StayCardProps {

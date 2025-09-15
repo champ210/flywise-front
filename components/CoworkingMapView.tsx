@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { CoworkingSpace } from '../types';
-import { Icon } from './Icon';
+import { CoworkingSpace } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 declare const L: any; // Using Leaflet from CDN
 

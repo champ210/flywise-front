@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
-import { PaymentMethod } from '../types';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { PaymentMethod } from '@/types';
 
 interface AddPaymentMethodModalProps {
   onClose: () => void;

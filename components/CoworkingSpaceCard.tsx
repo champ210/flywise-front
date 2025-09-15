@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { CoworkingSpace } from '../types';
-import { Icon } from './Icon';
+import { CoworkingSpace } from '@/types';
+import { Icon } from '@/components/common/Icon';
 
 interface CoworkingSpaceCardProps {
   space: CoworkingSpace;

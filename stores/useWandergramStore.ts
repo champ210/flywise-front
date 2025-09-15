@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { WandergramPost, WandergramStory, WandergramConversation, WandergramComment } from '../types';
-import * as xanoService from '../services/xanoService';
+import { WandergramPost, WandergramStory, WandergramConversation, WandergramComment } from '@/types';
+import * as xanoService from '@/services/xanoService';
 
 interface WandergramState {
   posts: WandergramPost[];

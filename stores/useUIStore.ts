@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { SearchResult, Flight, Stay, Car, CoworkingSpace, Restaurant, RideOption, LocalProfile, HangoutSuggestion, WandergramPost, TripIdea, Experience } from '../types';
-import { Tab } from '../navigation/constants';
+import { SearchResult, Flight, Stay, Car, CoworkingSpace, Restaurant, RideOption, LocalProfile, HangoutSuggestion, WandergramPost, TripIdea, Experience } from '@/types';
+import { Tab } from '@/navigation/constants';
 
 interface UIState {
   activeTab: Tab;

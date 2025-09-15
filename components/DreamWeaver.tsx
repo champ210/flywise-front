@@ -1,9 +1,9 @@
 
 import React, { useState, useCallback } from 'react';
-import { VibeSearchResult } from '../types';
-import { generateVibeSearchIdeas } from '../services/geminiService';
-import { Icon } from './Icon';
-import LoadingSpinner from './LoadingSpinner';
+import { VibeSearchResult } from '@/types';
+import { generateVibeSearchIdeas } from '@/services/geminiService';
+import { Icon } from '@/components/common/Icon';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const DreamWeaver: React.FC = () => {
   const [vibe, setVibe] = useState('');

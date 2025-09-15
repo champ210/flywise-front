@@ -1,9 +1,9 @@
 
 import React, { useState, useCallback } from 'react';
-import { LocalProfile, UserProfile, HangoutSuggestion } from '../types';
-import { Icon } from './Icon';
-import { getHangoutSuggestions } from '../services/geminiService';
-import LoadingSpinner from './LoadingSpinner';
+import { LocalProfile, UserProfile, HangoutSuggestion } from '@/types';
+import { Icon } from '@/components/common/Icon';
+import { getHangoutSuggestions } from '@/services/geminiService';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface HostDetailProps {
   local: LocalProfile;
